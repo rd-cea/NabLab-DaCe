@@ -114,7 +114,8 @@ class DaceGenerator implements IrCodeGenerator
 	echo ==== Creating Python virtual environment
 	python3 -m venv .venv
 	.venv/bin/python -m pip install --upgrade pip
-	.venv/bin/python -m pip install numpy plyvel
+	.venv/bin/python -m pip install wheel
+	.venv/bin/python -m pip install numpy plyvel dace
 
 	echo 
 	echo ===== Starting execution

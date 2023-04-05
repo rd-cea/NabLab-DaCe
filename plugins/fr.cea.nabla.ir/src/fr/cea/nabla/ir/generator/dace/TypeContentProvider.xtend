@@ -66,5 +66,5 @@ class TypeContentProvider
 	}
 
 	private static def getNumpyAllocation(Iterable<CharSequence> iteratorsAndIndices, PrimitiveType primitive)
-	''' = np.empty((«FOR i : iteratorsAndIndices SEPARATOR ", "»«i»«ENDFOR»), dtype=np.«primitive.numpyType»)'''
+	''' = dace.ndarray(shape=[«FOR i : iteratorsAndIndices SEPARATOR ", "»«i»«ENDFOR»], dtype=«primitive.daceType») # [6] This one is generated when initializing attributes'''
 }

@@ -18,7 +18,6 @@ import fr.cea.nabla.ir.ir.DefaultExtensionProvider
 import fr.cea.nabla.ir.ir.Expression
 import fr.cea.nabla.ir.ir.FunctionCall
 import fr.cea.nabla.ir.ir.Instruction
-import fr.cea.nabla.ir.ir.Interval
 import fr.cea.nabla.ir.ir.IrFactory
 import fr.cea.nabla.ir.ir.IrModule
 import fr.cea.nabla.ir.ir.IrPackage
@@ -241,15 +240,9 @@ class CreateArrayOperators extends IrTransformationStep
 		// variable declaration to store the result
 		block.instructions += IrFactory::eINSTANCE.createVariableDeclaration => [ variable = result ]
 
-		// loops and binary operation
-		val resultRef = opUtils.createArgOrVarRef(result)
+		// no need for loops, unary operator is called directly
 		val aRef = opUtils.createArgOrVarRef(a)
-		val Interval[] intervals = newArrayOfSize(variables.size)
-		for (i : 0..<intervals.size) intervals.set(i, createInterval(variables.get(i)))
-		block.instructions += opUtils.createLoopForUnaryOp(resultRef, aRef, intervals, op)
-
-		// return instruction to return the result
-		block.instructions += IrFactory::eINSTANCE.createReturn => [ expression = opUtils.createArgOrVarRef(result) ]
+		block.instructions += opUtils.createReturnForUnaryOp(aRef, op)
 	}
 
 	private def create IrFactory::eINSTANCE.createInternFunction toIrBinaryOperation(PrimitiveType aPrimitive, PrimitiveType bPrimitive, int dimension, OperatorUtils.BinOpType binOpType, String op)
@@ -292,31 +285,14 @@ class CreateArrayOperators extends IrTransformationStep
 			b.type = createArrayBaseType(bPrimitive, variables)
 		inArgs += b
 
-		// create the result variable
-		val result = IrFactory::eINSTANCE.createVariable
-		result.name = "result"
-		result.const = false
-		result.constExpr = false
-		result.option = false
-		result.type = createArrayBaseType(returnPrimitiveType, variables)
-
 		// create body
 		val block = IrFactory::eINSTANCE.createInstructionBlock
 		body = block
 
-		// variable declaration to store the result
-		block.instructions += IrFactory::eINSTANCE.createVariableDeclaration => [ variable = result ]
-
-		// loops and binary operation
-		val resultRef = opUtils.createArgOrVarRef(result)
+		// no need for loops, binary operator is called directly
 		val aRef = opUtils.createArgOrVarRef(a)
 		val bRef = opUtils.createArgOrVarRef(b)
-		val Interval[] intervals = newArrayOfSize(variables.size)
-		for (i : 0..<intervals.size) intervals.set(i, createInterval(variables.get(i)))
-		block.instructions += opUtils.createLoopForBinaryOp(resultRef, aRef, bRef, intervals, binOpType, op)
-
-		// return instruction to return the result
-		block.instructions += IrFactory::eINSTANCE.createReturn => [ expression = opUtils.createArgOrVarRef(result) ]
+		block.instructions += opUtils.createReturnForBinaryOp(aRef, bRef, binOpType, op)
 	}
 
 	private def createInterval(Variable sizeVariable)

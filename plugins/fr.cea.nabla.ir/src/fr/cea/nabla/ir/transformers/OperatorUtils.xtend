@@ -23,58 +23,28 @@ class OperatorUtils
 
 	enum BinOpType { ArrayArray, ArrayScalar, ScalarArray }
 
-	def create IrFactory::eINSTANCE.createLoop createLoopForUnaryOp(ArgOrVarRef result, ArgOrVarRef a, Iterable<Interval> intervals, String op)
+	def create IrFactory::eINSTANCE.createReturn createReturnForUnaryOp(ArgOrVarRef a, String op)
 	{
-		val counter = intervals.head.index
+		expression = IrFactory::eINSTANCE.createUnaryExpression =>
+		[
+			type = createScalarBaseType((a.type as BaseType).primitive)
+			constExpr = true
+			expression = a
+			operator = op
+		]
 
-		iterationBlock = intervals.head
-		result.indices += createArgOrVarRef(counter)
-		a.indices += createArgOrVarRef(counter)
-
-		if (intervals.size > 1)
-			body = createLoopForUnaryOp(result, a, intervals.tail, op)
-		else
-			body = IrFactory::eINSTANCE.createAffectation =>
-			[
-				left = result
-				right = IrFactory::eINSTANCE.createUnaryExpression =>
-				[
-					type = createScalarBaseType((a.type as BaseType).primitive)
-					constExpr = true
-					expression = a
-					operator = op
-				]
-			]
-
-		multithreadable = true
 	}
 
-	def create IrFactory::eINSTANCE.createLoop createLoopForBinaryOp(ArgOrVarRef result, ArgOrVarRef a, ArgOrVarRef b, Iterable<Interval> intervals, BinOpType binOpType, String op)
+	def create IrFactory::eINSTANCE.createReturn createReturnForBinaryOp(ArgOrVarRef a, ArgOrVarRef b, BinOpType binOpType, String op)
 	{
-		val counter = intervals.head.index
-
-		iterationBlock = intervals.head
-		result.indices += createArgOrVarRef(counter)
-		if (binOpType != BinOpType::ScalarArray) a.indices += createArgOrVarRef(counter)
-		if (binOpType != BinOpType::ArrayScalar) b.indices += createArgOrVarRef(counter)
-
-		if (intervals.size > 1)
-			body = createLoopForBinaryOp(result, a, b, intervals.tail, binOpType, op)
-		else
-			body = IrFactory::eINSTANCE.createAffectation =>
-			[
-				left = result
-				right = IrFactory::eINSTANCE.createBinaryExpression =>
-				[
-					type = createScalarBaseType((a.type as BaseType).primitive)
-					constExpr = true
-					left = a
-					right = b
-					operator = op
-				]
-			]
-
-		multithreadable = true
+		expression = IrFactory::eINSTANCE.createBinaryExpression =>
+		[
+			type = createScalarBaseType((a.type as BaseType).primitive)
+			constExpr = true
+			left = a
+			right = b
+			operator = op
+		]
 	}
 
 	def createArgOrVarRef(ArgOrVar v)

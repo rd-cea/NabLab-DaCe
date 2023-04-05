@@ -33,7 +33,7 @@ class ItemIndexAndIdValueContentProvider
 
 	static def dispatch getContent(ItemIdValueContainer it)
 	{
-		getContent(container, "mesh.")
+		getContent(container, "mesh.") + '[0]'
 	}
 
 	private static def getIndexValue(ItemIdValueIterator it)

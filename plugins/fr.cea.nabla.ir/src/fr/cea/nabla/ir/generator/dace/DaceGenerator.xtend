@@ -18,7 +18,7 @@ import fr.cea.nabla.ir.generator.Utils
 import fr.cea.nabla.ir.ir.DefaultExtensionProvider
 import fr.cea.nabla.ir.ir.IrRoot
 import fr.cea.nabla.ir.transformers.PreventFunctionOverloading
-import fr.cea.nabla.ir.transformers.ReplaceReductions
+import fr.cea.nabla.ir.transformers.DaceReplaceReductions
 import fr.cea.nabla.ir.transformers.SetPythonOperatorNames
 import java.util.ArrayList
 import java.util.LinkedHashSet
@@ -41,12 +41,12 @@ class DaceGenerator implements IrCodeGenerator
 		UnzipHelper::unzipNRepository(wsPath)
 	}
 
-	override getName() { "Python" }
+	override getName() { "DaCe" }
 
 	override getIrTransformationSteps()
 	{
 		#[
-			new ReplaceReductions(true), // parallel loops and reductions not yet implemented
+			new DaceReplaceReductions(true), // parallel loops and reductions not yet implemented
 			new SetPythonOperatorNames,
 			new PreventFunctionOverloading
 		]
@@ -87,7 +87,7 @@ class DaceGenerator implements IrCodeGenerator
 	#!/bin/sh
 	#
 	#
-	# Excute «pyFileName» with the installed python3.
+	# Execute «pyFileName» with the installed python3.
 	# Numpy and plyvel modules must be installed.
 	# To reproduce results, use runvenv.sh.
 	#

@@ -151,7 +151,8 @@ class CartesianMesh2D:
     
     def getFacesOfCell(self, cellId):
         x, y = self._id2IndexCell(cellId)
-        facesOfCell = np.empty(4, dtype=np.int)
+        facesOfCell = dace.ndarray(4, dtype=np.int)
+        facesOfCell.fill(0)
         facesOfCell[0] = (2 * y[0] + x[0] * (2 * self._nbXQuads + 1))
         facesOfCell[1] = facesOfCell[0] + 1
         

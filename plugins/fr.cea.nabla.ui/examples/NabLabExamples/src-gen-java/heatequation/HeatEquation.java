@@ -29,7 +29,7 @@ public final class HeatEquation
 	int maxIterations;
 	static final double PI = 3.1415926;
 	static final double alpha = 1.0;
-	static final double deltat = 0.001;
+	static final double delta_t = 0.001;
 	double t_n;
 	double t_nplus1;
 	double t_n0;
@@ -55,21 +55,21 @@ public final class HeatEquation
 	{
 		final Gson gson = new Gson();
 		final JsonObject options = gson.fromJson(jsonContent, JsonObject.class);
-		assert(options.has("outputPath"));
+		assert options.has("outputPath") : "No outputPath option";
 		final JsonElement valueof_outputPath = options.get("outputPath");
 		outputPath = valueof_outputPath.getAsJsonPrimitive().getAsString();
 		writer = new PvdFileWriter2D("HeatEquation", outputPath);
-		assert(options.has("outputPeriod"));
+		assert options.has("outputPeriod") : "No outputPeriod option";
 		final JsonElement valueof_outputPeriod = options.get("outputPeriod");
 		assert(valueof_outputPeriod.isJsonPrimitive());
 		outputPeriod = valueof_outputPeriod.getAsJsonPrimitive().getAsInt();
 		lastDump = Integer.MIN_VALUE;
 		n = 0;
-		assert(options.has("stopTime"));
+		assert options.has("stopTime") : "No stopTime option";
 		final JsonElement valueof_stopTime = options.get("stopTime");
 		assert(valueof_stopTime.isJsonPrimitive());
 		stopTime = valueof_stopTime.getAsJsonPrimitive().getAsDouble();
-		assert(options.has("maxIterations"));
+		assert options.has("maxIterations") : "No maxIterations option";
 		final JsonElement valueof_maxIterations = options.get("maxIterations");
 		assert(valueof_maxIterations.isJsonPrimitive());
 		maxIterations = valueof_maxIterations.getAsJsonPrimitive().getAsInt();
@@ -93,12 +93,12 @@ public final class HeatEquation
 
 	/**
 	 * Job computeOutgoingFlux called @1.0 in executeTimeLoopN method.
-	 * In variables: V, center, deltat, surface, u_n
+	 * In variables: V, center, delta_t, surface, u_n
 	 * Out variables: outgoingFlux
 	 */
 	protected void computeOutgoingFlux()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(j1Cells -> 
+		IntStream.range(0, nbCells).parallel().forEach(j1Cells ->
 		{
 			final int j1Id = j1Cells;
 			double reduction0 = 0.0;
@@ -115,7 +115,7 @@ public final class HeatEquation
 					reduction0 = sumR0(reduction0, reduction1);
 				}
 			}
-			outgoingFlux[j1Cells] = deltat / V[j1Cells] * reduction0;
+			outgoingFlux[j1Cells] = delta_t / V[j1Cells] * reduction0;
 		});
 	}
 
@@ -126,7 +126,7 @@ public final class HeatEquation
 	 */
 	protected void computeSurface()
 	{
-		IntStream.range(0, nbFaces).parallel().forEach(fFaces -> 
+		IntStream.range(0, nbFaces).parallel().forEach(fFaces ->
 		{
 			final int fId = fFaces;
 			double reduction0 = 0.0;
@@ -148,12 +148,12 @@ public final class HeatEquation
 
 	/**
 	 * Job computeTn called @1.0 in executeTimeLoopN method.
-	 * In variables: deltat, t_n
+	 * In variables: delta_t, t_n
 	 * Out variables: t_nplus1
 	 */
 	protected void computeTn()
 	{
-		t_nplus1 = t_n + deltat;
+		t_nplus1 = t_n + delta_t;
 	}
 
 	/**
@@ -163,7 +163,7 @@ public final class HeatEquation
 	 */
 	protected void computeV()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			final int jId = jCells;
 			double reduction0 = 0.0;
@@ -190,7 +190,7 @@ public final class HeatEquation
 	 */
 	protected void iniCenter()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			final int jId = jCells;
 			double[] reduction0 = new double[] {0.0, 0.0};
@@ -215,7 +215,7 @@ public final class HeatEquation
 	 */
 	protected void iniF()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			f[jCells] = 0.0;
 		});
@@ -233,14 +233,14 @@ public final class HeatEquation
 
 	/**
 	 * Job computeUn called @2.0 in executeTimeLoopN method.
-	 * In variables: deltat, f, outgoingFlux, u_n
+	 * In variables: delta_t, f, outgoingFlux, u_n
 	 * Out variables: u_nplus1
 	 */
 	protected void computeUn()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
-			u_nplus1[jCells] = f[jCells] * deltat + u_n[jCells] + outgoingFlux[jCells];
+			u_nplus1[jCells] = f[jCells] * delta_t + u_n[jCells] + outgoingFlux[jCells];
 		});
 	}
 
@@ -251,7 +251,7 @@ public final class HeatEquation
 	 */
 	protected void iniUn()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			u_n[jCells] = Math.cos(2 * PI * alpha * center[jCells][0]);
 		});
@@ -279,7 +279,7 @@ public final class HeatEquation
 		do
 		{
 			n++;
-			System.out.printf("START ITERATION n: %5d - t: %5.5f - deltat: %5.5f\n", n, t_n, deltat);
+			System.out.printf("START ITERATION n: %5d - t: %5.5f - delta_t: %5.5f\n", n, t_n, delta_t);
 			if (n >= lastDump + outputPeriod)
 				dumpVariables(n);
 		
@@ -291,13 +291,13 @@ public final class HeatEquation
 			continueLoop = (t_nplus1 < stopTime && n + 1 < maxIterations);
 		
 			t_n = t_nplus1;
-			IntStream.range(0, nbCells).parallel().forEach(i1Cells -> 
+			IntStream.range(0, nbCells).parallel().forEach(i1Cells ->
 			{
 				u_n[i1Cells] = u_nplus1[i1Cells];
 			});
 		} while (continueLoop);
 		
-		System.out.printf("FINAL TIME: %5.5f - deltat: %5.5f\n", t_n, deltat);
+		System.out.printf("FINAL TIME: %5.5f - delta_t: %5.5f\n", t_n, delta_t);
 		dumpVariables(n+1);
 	}
 
@@ -334,30 +334,30 @@ public final class HeatEquation
 	private static double[] operatorAdd(double[] a, double[] b)
 	{
 		double[] result = new double[a.length];
-		for (int ix0=0; ix0<a.length; ix0++)
+		IntStream.range(0, a.length).parallel().forEach(ix0 ->
 		{
 			result[ix0] = a[ix0] + b[ix0];
-		}
+		});
 		return result;
 	}
 
 	private static double[] operatorMult(double a, double[] b)
 	{
 		double[] result = new double[b.length];
-		for (int ix0=0; ix0<b.length; ix0++)
+		IntStream.range(0, b.length).parallel().forEach(ix0 ->
 		{
 			result[ix0] = a * b[ix0];
-		}
+		});
 		return result;
 	}
 
 	private static double[] operatorSub(double[] a, double[] b)
 	{
 		double[] result = new double[a.length];
-		for (int ix0=0; ix0<a.length; ix0++)
+		IntStream.range(0, a.length).parallel().forEach(ix0 ->
 		{
 			result[ix0] = a[ix0] - b[ix0];
-		}
+		});
 		return result;
 	}
 
@@ -384,13 +384,13 @@ public final class HeatEquation
 			final JsonObject o = gson.fromJson(new FileReader(dataFileName), JsonObject.class);
 
 			// Mesh instanciation
-			assert(o.has("mesh"));
+			assert o.has("mesh") : "No mesh option";
 			CartesianMesh2D mesh = new CartesianMesh2D();
 			mesh.jsonInit(o.get("mesh").toString());
 
 			// Module instanciation(s)
 			HeatEquation heatEquation = new HeatEquation(mesh);
-			assert(o.has("heatEquation"));
+			assert o.has("heatEquation") : "No heatEquation option";
 			heatEquation.jsonInit(o.get("heatEquation").toString());
 
 			// Start simulation

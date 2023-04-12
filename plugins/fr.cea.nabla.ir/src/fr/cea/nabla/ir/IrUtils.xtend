@@ -11,23 +11,24 @@ package fr.cea.nabla.ir
 
 import com.google.gson.Gson
 import com.google.gson.JsonObject
-import fr.cea.nabla.ir.ir.IterationBlock
-import fr.cea.nabla.ir.ir.Iterator
+import fr.cea.nabla.ir.ir.Affectation
+import fr.cea.nabla.ir.ir.ArgOrVarRef
+import fr.cea.nabla.ir.ir.IrPackage
+import fr.cea.nabla.ir.ir.Variable
 import java.io.PrintWriter
 import java.io.StringWriter
 import org.eclipse.emf.ecore.EObject
 
-import static extension fr.cea.nabla.ir.ContainerExtensions.*
+import static extension fr.cea.nabla.ir.ArgOrVarExtensions.isGlobal
 
 class IrUtils
 {
-	// @TODO Comments in .n file generated in code (Doxygen) and AXL description field
-
 	public static val NRepository = '.nablab'
 	public static val LastDumpOptionName = "lastDump"
 	public static val OutputPeriodOptionName = "outputPeriod"
 	public static val OutputPathNameAndValue = new Pair<String, String>("outputPath", "output")
-	public static val NonRegressionNameAndValue = new Pair<String, String>("nonRegression", "")
+	public static val NonRegressionNameAndValue = new Pair<String, String>("nonRegression", '""')
+	public static val NonRegressionToleranceNameAndValue = new Pair<String, String>("nonRegressionTolerance", '""')
 	static enum NonRegressionValues { CreateReference, CompareToReference }
 
 	/* Usefull functions from EcoreUtil2 (no dependency to org.eclipse.xtext in IR) */
@@ -71,7 +72,7 @@ class IrUtils
 		return result.toString()
 	}
 
-	static def addNonRegressionTagToJsonFile(String moduleName, String jsonContent, String value)
+	static def addNonRegressionTagsToJsonFile(String moduleName, String jsonContent, String value, double tolerance)
 	{
 		val gson = new Gson
 		val jsonObject = gson.fromJson(jsonContent, JsonObject)
@@ -80,14 +81,19 @@ class IrUtils
 		val jsonOptions = jsonObject.get(moduleName.toFirstLower).asJsonObject
 		val nrName = NonRegressionNameAndValue.key
 		jsonOptions.addProperty(nrName, value)
+		val nrToleranceName = NonRegressionToleranceNameAndValue.key
+		jsonOptions.addProperty(nrToleranceName, tolerance)
 		return gson.toJson(jsonObject)
 	}
 
-	static def boolean isTopLevelConnectivity(IterationBlock b)
+	static def getInVars(EObject it)
 	{
-		if (b instanceof Iterator)
-			b.container.connectivityCall.args.empty
-		else
-			false
+		val allReferencedVars = eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target]
+		allReferencedVars.filter(Variable).filter[global].toSet
+	}
+
+	static def getOutVars(EObject it)
+	{
+		eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet
 	}
 }

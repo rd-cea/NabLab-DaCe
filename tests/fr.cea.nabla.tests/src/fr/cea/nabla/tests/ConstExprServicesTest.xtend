@@ -45,11 +45,11 @@ class ConstExprServicesTest
 		val model =
 		'''
 		«testModule»
-		let ℕ dim = 2;
-		ℕ unknownDim;
-		ℝ[2] X{nodes};
-		ℝ[1 + 1, unknownDim] Y;
-		// let ℝ[dim] orig = [0.0, 1.1];
+		let int dim = 2;
+		int unknownDim;
+		real[2] X{nodes};
+		real[1 + 1, unknownDim] Y;
+		// let real[dim] orig = [0.0, 1.1];
 		'''
 
 		val rs = resourceSetProvider.get
@@ -89,20 +89,20 @@ class ConstExprServicesTest
 		val model =
 		'''
 		«emptyTestModule»
-		def f: x,y | ℝ[x] × ℝ[y] → ℝ[x+y], (a, b) →
+		def <x,y> real[x+y] f(real[x] a, real[y] b) 
 		{
-			let ℝ[x+y] c = 2.0;
+			let real[x+y] c = 2.0;
 			c = a * 2.0;
 			return c + 4.0;
 		}
-		def g: → ℝ, () →
+		def real g() 
 		{
-			ℝ[4] n;
-			ℝ[4, 2] m;
-			∀ i∈[0;4[, 
+			real[4] n;
+			real[4, 2] m;
+			forall  i in [0;4[, 
 			{
 				n[i] = 4.0;
-				∀ j∈[0;2[, m[i,j] = 3.0;
+				forall  j in [0;2[, m[i,j] = 3.0;
 			}
 			return 4.0;
 		}
@@ -124,7 +124,9 @@ class ConstExprServicesTest
 		val g = module.functions.findFirst[v | v.name == "g"]
 
 		// Assertions
-		Assert.assertTrue(constExprServices.isConstExpr(f))
+		// As functions are not inlined in c++ generation, function can't be constexpr
+		//Assert.assertTrue(constExprServices.isConstExpr(f))
+		Assert.assertFalse(constExprServices.isConstExpr(f))
 
 		Assert.assertTrue(f_a1_type instanceof NSTRealArray1D)
 		val f_a1_type_simple = f_a1_type as NSTRealArray1D
@@ -136,11 +138,13 @@ class ConstExprServicesTest
 		Assert.assertTrue(constExprServices.isConstExpr(f_a2_type_simple.size))
 		Assert.assertTrue(constExprServices.isConstExpr(f_y))
 
-		val f_return_type = f.typeDeclaration.returnType.typeFor
+		val f_return_type = f.returnTypeDeclaration.returnType.typeFor
 		Assert.assertTrue(f_return_type instanceof NSTRealArray1D)
 		val f_return_type_simple = f_return_type as NSTRealArray1D
 		Assert.assertTrue(constExprServices.isConstExpr(f_return_type_simple.size))
 
-		Assert.assertTrue(constExprServices.isConstExpr(g))
+		// As functions are not inlined in c++ generation, function can't be constexpr
+		//Assert.assertTrue(constExprServices.isConstExpr(g))
+		Assert.assertFalse(constExprServices.isConstExpr(g))
 	}
 }

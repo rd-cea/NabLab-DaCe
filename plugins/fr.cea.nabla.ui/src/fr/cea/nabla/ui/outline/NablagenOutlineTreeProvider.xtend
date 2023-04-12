@@ -62,6 +62,9 @@ class NablagenOutlineTreeProvider extends DefaultOutlineTreeProvider
 			case STL_THREAD: 'Multi-thread STL C++'
 			case DACE: 'Data-Centric Parallel Programming'
 			case ARCANE: 'Arcane C++ framework'
+			case ARCANE_ACCELERATOR: 'Arcane Accelerator API'
+			case ARCANE_SEQUENTIAL: 'Arcane Sequential API'
+			case ARCANE_THREAD: 'Arcane Thread API'
 			default: 'Unknown target'
 		}
 	}
@@ -78,6 +81,9 @@ class NablagenOutlineTreeProvider extends DefaultOutlineTreeProvider
 			case STL_THREAD: NablaUiUtils.createImage('icons/StlThread.gif')
 			case DACE: NablaUiUtils.createImage('icons/Dace.gif')
 			case ARCANE: NablaUiUtils.createImage('icons/StlThread.gif')
+			case ARCANE_ACCELERATOR: NablaUiUtils.createImage('icons/Cuda.gif')
+			case ARCANE_SEQUENTIAL: NablaUiUtils.createImage('icons/CppSequential.gif')
+			case ARCANE_THREAD: NablaUiUtils.createImage('icons/StlThread.gif')
 			default: null
 		}
 	}

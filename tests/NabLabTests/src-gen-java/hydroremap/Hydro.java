@@ -25,7 +25,7 @@ public final class Hydro
 	// Options and global variables
 	int maxIter;
 	double maxTime;
-	double deltat;
+	double delta_t;
 	static final double t = 0.0;
 	double[][] X;
 	double[] hv1;
@@ -48,18 +48,18 @@ public final class Hydro
 	{
 		final Gson gson = new Gson();
 		final JsonObject options = gson.fromJson(jsonContent, JsonObject.class);
-		assert(options.has("maxIter"));
+		assert options.has("maxIter") : "No maxIter option";
 		final JsonElement valueof_maxIter = options.get("maxIter");
 		assert(valueof_maxIter.isJsonPrimitive());
 		maxIter = valueof_maxIter.getAsJsonPrimitive().getAsInt();
-		assert(options.has("maxTime"));
+		assert options.has("maxTime") : "No maxTime option";
 		final JsonElement valueof_maxTime = options.get("maxTime");
 		assert(valueof_maxTime.isJsonPrimitive());
 		maxTime = valueof_maxTime.getAsJsonPrimitive().getAsDouble();
-		assert(options.has("deltat"));
-		final JsonElement valueof_deltat = options.get("deltat");
-		assert(valueof_deltat.isJsonPrimitive());
-		deltat = valueof_deltat.getAsJsonPrimitive().getAsDouble();
+		assert options.has("delta_t") : "No delta_t option";
+		final JsonElement valueof_delta_t = options.get("delta_t");
+		assert(valueof_delta_t.isJsonPrimitive());
+		delta_t = valueof_delta_t.getAsJsonPrimitive().getAsDouble();
 		X = new double[nbNodes][2];
 		hv1 = new double[nbCells];
 		hv2 = new double[nbCells];
@@ -85,7 +85,7 @@ public final class Hydro
 	 */
 	protected void iniHv1()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			hv1[cCells] = 2.0;
 		});
@@ -98,7 +98,7 @@ public final class Hydro
 	 */
 	protected void iniHv2()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			hv2[cCells] = 0.0;
 		});
@@ -111,7 +111,7 @@ public final class Hydro
 	 */
 	protected void hj1()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			hv3[cCells] = hv2[cCells] + 1.0;
 		});
@@ -124,7 +124,7 @@ public final class Hydro
 	 */
 	protected void oracleHv1()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			final boolean testHv1 = assertEquals(2.0, hv1[cCells]);
 		});
@@ -137,7 +137,7 @@ public final class Hydro
 	 */
 	protected void oracleHv2()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			final boolean testHv2 = assertEquals(0.0, hv2[cCells]);
 		});
@@ -150,7 +150,7 @@ public final class Hydro
 	 */
 	protected void hj2()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			hv5[cCells] = hv3[cCells] + 2.0;
 		});
@@ -163,7 +163,7 @@ public final class Hydro
 	 */
 	protected void oracleHv3()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			final boolean testHv3 = assertEquals(1.0, hv3[cCells]);
 		});
@@ -176,7 +176,7 @@ public final class Hydro
 	 */
 	protected void oracleHv4()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			final boolean testHv4 = assertEquals(4.0, hv4[cCells]);
 		});
@@ -189,7 +189,7 @@ public final class Hydro
 	 */
 	protected void oracleHv5()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			final boolean testHv5 = assertEquals(3.0, hv5[cCells]);
 		});
@@ -202,7 +202,7 @@ public final class Hydro
 	 */
 	protected void hj3()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			hv7[cCells] = hv4[cCells] + hv5[cCells] + hv6[cCells];
 		});
@@ -215,7 +215,7 @@ public final class Hydro
 	 */
 	protected void oracleHv6()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			final boolean testHv6 = assertEquals(6.0, hv6[cCells]);
 		});
@@ -228,7 +228,7 @@ public final class Hydro
 	 */
 	protected void oracleHv7()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			final boolean testHv7 = assertEquals(13.0, hv7[cCells]);
 		});
@@ -273,20 +273,20 @@ public final class Hydro
 			final JsonObject o = gson.fromJson(new FileReader(dataFileName), JsonObject.class);
 
 			// Mesh instanciation
-			assert(o.has("mesh"));
+			assert o.has("mesh") : "No mesh option";
 			CartesianMesh2D mesh = new CartesianMesh2D();
 			mesh.jsonInit(o.get("mesh").toString());
 
 			// Module instanciation(s)
 			Hydro hydro = new Hydro(mesh);
-			assert(o.has("hydro"));
+			assert o.has("hydro") : "No hydro option";
 			hydro.jsonInit(o.get("hydro").toString());
 			R1 r1 = new R1(mesh);
-			assert(o.has("r1"));
+			assert o.has("r1") : "No r1 option";
 			r1.jsonInit(o.get("r1").toString());
 			r1.setMainModule(hydro);
 			R2 r2 = new R2(mesh);
-			assert(o.has("r2"));
+			assert o.has("r2") : "No r2 option";
 			r2.jsonInit(o.get("r2").toString());
 			r2.setMainModule(hydro);
 

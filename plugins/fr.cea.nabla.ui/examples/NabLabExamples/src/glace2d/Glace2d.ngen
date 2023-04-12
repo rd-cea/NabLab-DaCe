@@ -13,7 +13,7 @@ MainModule Glace2d glace2d
 {
 	nodeCoord = X;
 	time = t;
-	timeStep = δt;
+	timeStep = delta_t;
 	iterationMax = maxIterations;
 	timeMax = stopTime;
 }
@@ -21,7 +21,7 @@ MainModule Glace2d glace2d
 VtkOutput
 {
 	periodReferenceVariable = glace2d.n;
-	outputVariables = glace2d.ρ as "Density";
+	outputVariables = glace2d.rho as "Density";
 }
 
 //LevelDB
@@ -66,9 +66,23 @@ StlThread
 	CMAKE_CXX_COMPILER = "/usr/bin/g++";
 }
 
-Arcane
+ArcaneSequential
 {
-	outputPath = "/NabLabExamples/src-gen-arcane";
+	outputPath = "/NabLabExamples/src-gen-arcane/sequential";
+	CMAKE_CXX_COMPILER = "/usr/bin/g++";
+	Arcane_ROOT = "$ENV{HOME}/arcane/install";
+}
+
+ArcaneThread
+{
+	outputPath = "/NabLabExamples/src-gen-arcane/thread";
+	CMAKE_CXX_COMPILER = "/usr/bin/g++";
+	Arcane_ROOT = "$ENV{HOME}/arcane/install";
+}
+
+ArcaneAccelerator
+{
+	outputPath = "/NabLabExamples/src-gen-arcane/accelerator";
 	CMAKE_CXX_COMPILER = "/usr/bin/g++";
 	Arcane_ROOT = "$ENV{HOME}/arcane/install";
 }

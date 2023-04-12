@@ -23,6 +23,7 @@ using namespace nablalib::utils;
 using namespace nablalib::types;
 using namespace nablalib::utils::kokkos;
 
+
 /******************** Free functions declarations ********************/
 
 namespace glace2dfreefuncs
@@ -68,6 +69,29 @@ RealArray2D<x0,x1> operatorMult(RealArray2D<x0,x1> a, double b);
 
 class Glace2d
 {
+
+private:
+	void dumpVariables(int iteration, bool useTimer=true);
+
+	// Mesh and mesh variables
+	CartesianMesh2D& mesh;
+	size_t nbNodes;
+	size_t nbCells;
+	size_t nbTopNodes;
+	size_t nbBottomNodes;
+	size_t nbLeftNodes;
+	size_t nbRightNodes;
+	size_t nbInnerNodes;
+
+	PvdFileWriter2D* writer;
+	std::string outputPath;
+
+	// Timers
+	Timer globalTimer;
+	Timer cpuTimer;
+	Timer ioTimer;
+	
+
 public:
 	Glace2d(CartesianMesh2D& aMesh);
 	~Glace2d();
@@ -102,22 +126,8 @@ public:
 	void computeEn() noexcept;
 	void computeUn() noexcept;
 
-private:
-	void dumpVariables(int iteration, bool useTimer=true);
-
-	// Mesh and mesh variables
-	CartesianMesh2D& mesh;
-	size_t nbNodes;
-	size_t nbCells;
-	size_t nbTopNodes;
-	size_t nbBottomNodes;
-	size_t nbLeftNodes;
-	size_t nbRightNodes;
-	size_t nbInnerNodes;
-
-	// Options and global variables
-	PvdFileWriter2D* writer;
-	std::string outputPath;
+	// Options and global variables.
+	// Module variables are public members of the class to be accessible from Python.
 	int outputPeriod;
 	int lastDump;
 	int n;
@@ -125,15 +135,15 @@ private:
 	int maxIterations;
 	static constexpr double gamma = 1.4;
 	static constexpr double xInterface = 0.5;
-	static constexpr double deltatCfl = 0.4;
-	static constexpr double rhoIniZg = 1.0;
-	static constexpr double rhoIniZd = 0.125;
+	static constexpr double delta_tCfl = 0.4;
+	static constexpr double rho_IniZg = 1.0;
+	static constexpr double rho_IniZd = 0.125;
 	static constexpr double pIniZg = 1.0;
 	static constexpr double pIniZd = 0.1;
 	double t_n;
 	double t_nplus1;
 	double t_n0;
-	double deltat;
+	double delta_t;
 	Kokkos::View<RealArray1D<2>*> X_n;
 	Kokkos::View<RealArray1D<2>*> X_nplus1;
 	Kokkos::View<RealArray1D<2>*> X_n0;
@@ -150,7 +160,7 @@ private:
 	Kokkos::View<double*> E_n;
 	Kokkos::View<double*> E_nplus1;
 	Kokkos::View<double*> V;
-	Kokkos::View<double*> deltatj;
+	Kokkos::View<double*> delta_tj;
 	Kokkos::View<RealArray1D<2>*> uj_n;
 	Kokkos::View<RealArray1D<2>*> uj_nplus1;
 	Kokkos::View<double**> l;
@@ -158,11 +168,6 @@ private:
 	Kokkos::View<RealArray1D<2>**> C;
 	Kokkos::View<RealArray1D<2>**> F;
 	Kokkos::View<RealArray2D<2,2>**> Ajr;
-
-	// Timers
-	Timer globalTimer;
-	Timer cpuTimer;
-	Timer ioTimer;
 };
 
 #endif

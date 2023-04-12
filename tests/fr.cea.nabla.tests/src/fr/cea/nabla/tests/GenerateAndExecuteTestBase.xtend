@@ -50,14 +50,14 @@ abstract class GenerateAndExecuteTestBase
 		GenerateAndExecuteTestBase.projectRelativePath = projectRelativePathValue
 
 		val testProjectPath = System.getProperty("user.dir")
-		val basePath = testProjectPath.replace("tests/fr.cea.nabla.tests", "")
+		val basePath = testProjectPath.replace("tests" + File.separator + "fr.cea.nabla.tests", "")
 		projectAbsolutePath = basePath + projectRelativePath
-		nRepositoryPath = basePath + "plugins/fr.cea.nabla.ir/resources/.nablab.zip"
-		javaLibPath = basePath + "plugins/fr.cea.nabla.javalib/bin/:" + basePath + "plugins/fr.cea.nabla.javalib/target/*"
-		commonMath3Path = basePath + "plugins/commons-math3/*"
-		levelDBPath = basePath + "plugins/leveldb/*"
+		nRepositoryPath = basePath + Paths.get("plugins", "fr.cea.nabla.ir", "resources", ".nablab.zip").toString
+		javaLibPath = basePath + Paths.get("plugins", "fr.cea.nabla.javalib", "bin").toString + File.separator + File.pathSeparator + basePath + Paths.get("plugins", "fr.cea.nabla.javalib", "target").toString + File.separator + "*"
+		commonMath3Path = basePath + Paths.get("plugins", "commons-math3").toString + File.separator + "*"
+		levelDBPath = basePath + Paths.get("plugins", "leveldb").toString + File.separator + "*"
 		git = new GitUtils(basePath)
-		GenerateAndExecuteTestBase.outputPath = WsPath + '/' + projectName
+		GenerateAndExecuteTestBase.outputPath = Paths.get(WsPath, projectName).toString
 		println("test working directory: " + GenerateAndExecuteTestBase.outputPath)
 
 		// Simpliest is to copy all NablaExamples tree in tmpDir
@@ -75,10 +75,10 @@ abstract class GenerateAndExecuteTestBase
 		val packageName = ngenFileName.toLowerCase
 		val models = new ArrayList<CharSequence>
 		for (nFileName : nFileNames)
-			models += readFileAsString(GenerateAndExecuteTestBase.projectAbsolutePath + "/src/" + packageName + "/" + nFileName + ".n")
-		var genmodel = readFileAsString(GenerateAndExecuteTestBase.projectAbsolutePath + "/src/" + packageName + "/" + ngenFileName + ".ngen")
-		compilationHelper.generateCode(models, genmodel, GenerateAndExecuteTestBase.projectAbsolutePath.replace('/' + projectName, ''), projectName)
-		testNoGitDiff("/" + packageName) // Add "/" to avoid a false positiv on explicitheatequation fail or implicitheatequation
+			models += readFileAsString(Paths.get(GenerateAndExecuteTestBase.projectAbsolutePath, "src", packageName, nFileName + ".n").toString)
+		var genmodel = readFileAsString(Paths.get(GenerateAndExecuteTestBase.projectAbsolutePath, "src", packageName, ngenFileName + ".ngen").toString)
+		compilationHelper.generateCode(models, genmodel, GenerateAndExecuteTestBase.projectAbsolutePath.replace(File.separator + projectName, ''), projectName)
+		testNoGitDiff(File.separator + packageName) // Add a separator to avoid a false positiv on explicitheatequation fail or implicitheatequation
 	}
 
 	protected def testExecuteModule(String moduleName)
@@ -130,7 +130,7 @@ abstract class GenerateAndExecuteTestBase
 			val dataFileWithoutExtension =  GenerateAndExecuteTestBase.projectAbsolutePath + "/src/" + packageName + "/" + ngenFileName
 
 			print("\tStarting " + target.type.literal)
-			if (target.type == TargetType::ARCANE)
+			if (target.type.literal.startsWith("Arcane"))
 			{
 				(!testExecuteArcane(outputPath, packageName, resultsRef, dataFileWithoutExtension + ".arc", ngenFileName) ? nbErrors++)
 			}
@@ -205,9 +205,6 @@ abstract class GenerateAndExecuteTestBase
 			val logPath = simplifyPath(outputPath + "/" + packageName + "/exec.err")
 			println(" -> Execute Error. See " + logPath)
 			//println("\t" + readFileAsString(logPath))
-			// Glace2d + KokkosTeam implies levelDb diffs -> to avoid CI fails we ignore them
-			if (moduleName == "Glace2d" && outputPath.contains("kokkos-team"))
-				return true
 			return false
 		}
 		return true
@@ -302,9 +299,6 @@ abstract class GenerateAndExecuteTestBase
 		{
 			val logPath = simplifyPath(outputPath + "/" + packageName + "/exec.err")
 			println(" -> Execute Error. See " + logPath)
-			// ImplicitHeatEquation implies levelDb diffs -> to avoid CI fails we ignore them
-			if (packageName == "implicitheatequation")
-				return true
 			return false
 		}
 		return true

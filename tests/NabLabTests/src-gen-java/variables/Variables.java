@@ -20,7 +20,7 @@ public final class Variables
 	// Options and global variables
 	static final double maxTime = 0.1;
 	static final int maxIter = 500;
-	static final double deltat = 1.0;
+	static final double delta_t = 1.0;
 	static final double t = 0.0;
 	double[][] X;
 	int optDim;
@@ -45,12 +45,12 @@ public final class Variables
 		final Gson gson = new Gson();
 		final JsonObject options = gson.fromJson(jsonContent, JsonObject.class);
 		X = new double[nbNodes][2];
-		assert(options.has("optDim"));
+		assert options.has("optDim") : "No optDim option";
 		final JsonElement valueof_optDim = options.get("optDim");
 		assert(valueof_optDim.isJsonPrimitive());
 		optDim = valueof_optDim.getAsJsonPrimitive().getAsInt();
 		optVect1 = new double[2];
-		assert(options.has("optVect1"));
+		assert options.has("optVect1") : "No optVect1 option";
 		final JsonElement valueof_optVect1 = options.get("optVect1");
 		assert(valueof_optVect1.isJsonArray());
 		assert(valueof_optVect1.getAsJsonArray().size() == 2);
@@ -60,7 +60,7 @@ public final class Variables
 			optVect1[i1] = valueof_optVect1.getAsJsonArray().get(i1).getAsJsonPrimitive().getAsDouble();
 		}
 		optVect2 = new double[2];
-		assert(options.has("optVect2"));
+		assert options.has("optVect2") : "No optVect2 option";
 		final JsonElement valueof_optVect2 = options.get("optVect2");
 		assert(valueof_optVect2.isJsonArray());
 		assert(valueof_optVect2.getAsJsonArray().size() == 2);
@@ -92,10 +92,13 @@ public final class Variables
 	protected void dynamicVecInitialization()
 	{
 		int cpt = 0;
+		IntStream.range(0, optDim).parallel().forEach(i ->
+		{
+			dynamicVec[i] = 3.3;
+		});
 		for (int i=0; i<optDim; i++)
 		{
 			cpt = cpt + 1;
-			dynamicVec[i] = 3.3;
 		}
 		checkDynamicDim = cpt;
 	}
@@ -112,7 +115,7 @@ public final class Variables
 
 	/**
 	 * Job oracle called @2.0 in simulate method.
-	 * In variables: checkDynamicDim, constexprDim, constexprVec, optDim, optVect1, optVect2, optVect3, varVec
+	 * In variables: checkDynamicDim, constexprDim, constexprVec, dynamicVec, optDim, optVect1, optVect2, optVect3, varVec
 	 * Out variables: 
 	 */
 	protected void oracle()
@@ -125,6 +128,10 @@ public final class Variables
 		final boolean testConstexprVec = assertEquals(new double[] {1.1, 1.1}, constexprVec);
 		final boolean testVarVec = assertEquals(new double[] {2.2, 2.2}, varVec);
 		final boolean testDynamicVecLength = assertEquals(2, checkDynamicDim);
+		IntStream.range(0, optDim).parallel().forEach(i ->
+		{
+			final boolean testDynamicVec = assertEquals(3.3, dynamicVec[i]);
+		});
 	}
 
 	private static boolean assertEquals(int expected, int actual)
@@ -137,21 +144,29 @@ public final class Variables
 
 	private static boolean assertEquals(double[] expected, double[] actual)
 	{
-		for (int i=0; i<expected.length; i++)
+		IntStream.range(0, expected.length).parallel().forEach(i ->
 		{
 			if (expected[i] != actual[i])
 				throw new RuntimeException("** Assertion failed");
-		}
+		});
 		return true;
+	}
+
+	private static boolean assertEquals(double expected, double actual)
+	{
+		final boolean ret = (expected == actual);
+		if (!ret)
+			throw new RuntimeException("** Assertion failed");
+		return ret;
 	}
 
 	private static double[] operatorAdd(double[] a, double[] b)
 	{
 		double[] result = new double[a.length];
-		for (int ix0=0; ix0<a.length; ix0++)
+		IntStream.range(0, a.length).parallel().forEach(ix0 ->
 		{
 			result[ix0] = a[ix0] + b[ix0];
-		}
+		});
 		return result;
 	}
 
@@ -173,13 +188,13 @@ public final class Variables
 			final JsonObject o = gson.fromJson(new FileReader(dataFileName), JsonObject.class);
 
 			// Mesh instanciation
-			assert(o.has("mesh"));
+			assert o.has("mesh") : "No mesh option";
 			CartesianMesh2D mesh = new CartesianMesh2D();
 			mesh.jsonInit(o.get("mesh").toString());
 
 			// Module instanciation(s)
 			Variables variables = new Variables(mesh);
-			assert(o.has("variables"));
+			assert o.has("variables") : "No variables option";
 			variables.jsonInit(o.get("variables").toString());
 
 			// Start simulation

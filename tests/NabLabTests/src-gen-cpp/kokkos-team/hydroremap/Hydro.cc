@@ -17,7 +17,9 @@ bool assertEquals(double expected, double actual)
 {
 	const bool ret((expected == actual));
 	if (!ret) 
+	{
 		throw std::runtime_error("** Assertion failed");
+	}
 	return ret;
 }
 }
@@ -59,10 +61,10 @@ Hydro::jsonInit(const char* jsonContent)
 	const rapidjson::Value& valueof_maxTime = options["maxTime"];
 	assert(valueof_maxTime.IsDouble());
 	maxTime = valueof_maxTime.GetDouble();
-	assert(options.HasMember("deltat"));
-	const rapidjson::Value& valueof_deltat = options["deltat"];
-	assert(valueof_deltat.IsDouble());
-	deltat = valueof_deltat.GetDouble();
+	assert(options.HasMember("delta_t"));
+	const rapidjson::Value& valueof_delta_t = options["delta_t"];
+	assert(valueof_delta_t.IsDouble());
+	delta_t = valueof_delta_t.GetDouble();
 
 	// Copy node coordinates
 	const auto& gNodes = mesh.getGeometry()->getNodes();

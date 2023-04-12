@@ -15,7 +15,9 @@ bool assertEquals(double expected, double actual)
 {
 	const bool ret((expected == actual));
 	if (!ret) 
+	{
 		throw std::runtime_error("** Assertion failed");
+	}
 	return ret;
 }
 }
@@ -70,12 +72,12 @@ Iteration::jsonInit(const char* jsonContent)
 
 /**
  * Job computeTn called @1.0 in executeTimeLoopN method.
- * In variables: deltat, t_n
+ * In variables: delta_t, t_n
  * Out variables: t_nplus1
  */
 void Iteration::computeTn() noexcept
 {
-	t_nplus1 = t_n + deltat;
+	t_nplus1 = t_n + delta_t;
 }
 
 /**
@@ -250,7 +252,7 @@ void Iteration::executeTimeLoopN() noexcept
 		// Progress
 		std::cout << progress_bar(n, maxIterN, t_n, maxTime, 25);
 		std::cout << __BOLD__ << __CYAN__ << Timer::print(
-			eta(n, maxIterN, t_n, maxTime, deltat, globalTimer), true)
+			eta(n, maxIterN, t_n, maxTime, delta_t, globalTimer), true)
 			<< __RESET__ << "\r";
 		std::cout.flush();
 	

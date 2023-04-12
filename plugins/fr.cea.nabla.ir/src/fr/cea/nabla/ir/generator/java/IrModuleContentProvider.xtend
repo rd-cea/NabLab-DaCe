@@ -88,7 +88,9 @@ class IrModuleContentProvider
 				private «v.packageName».«v.className» «v.instanceName»;
 			«ENDFOR»
 			«IF main && hasLevelDB»
+				// Non regression
 				private String «IrUtils.NonRegressionNameAndValue.key»;
+				private double «IrUtils.NonRegressionToleranceNameAndValue.key»;
 			«ENDIF»
 			«FOR v : variables»
 				«IF v.constExpr»
@@ -118,7 +120,7 @@ class IrModuleContentProvider
 				final JsonObject options = gson.fromJson(jsonContent, JsonObject.class);
 				«IF postProcessing !== null»
 					«val opName = IrUtils.OutputPathNameAndValue.key»
-					assert(options.has("«opName»"));
+					assert options.has("«opName»") : "No «opName» option";
 					final JsonElement «opName.jsonName» = options.get("«opName»");
 					«opName» = «opName.jsonName».getAsJsonPrimitive().getAsString();
 					writer = new PvdFileWriter2D("«irRoot.name»", «opName»);
@@ -141,6 +143,7 @@ class IrModuleContentProvider
 						«vName».jsonInit(options.get("«vName»").toString());
 				«ENDFOR»
 				«val nrName = IrUtils.NonRegressionNameAndValue.key»
+				«val nrToleranceName = IrUtils.NonRegressionToleranceNameAndValue.key»
 				«IF main && hasLevelDB»
 
 					// Non regression
@@ -149,6 +152,13 @@ class IrModuleContentProvider
 						final JsonElement «nrName.jsonName» = options.get("«nrName»");
 						«nrName» = «nrName.jsonName».getAsJsonPrimitive().getAsString();
 					}
+					if (options.has("«nrToleranceName»"))
+					{
+						final JsonElement «nrToleranceName.jsonName» = options.get("«nrToleranceName»");
+						«nrToleranceName» = «nrToleranceName.jsonName».getAsJsonPrimitive().getAsDouble();
+					}
+					else
+						«nrToleranceName» = 0.0;
 				«ENDIF»
 				«IF main»
 
@@ -189,14 +199,14 @@ class IrModuleContentProvider
 					final JsonObject o = gson.fromJson(new FileReader(dataFileName), JsonObject.class);
 
 					// Mesh instanciation
-					assert(o.has("mesh"));
+					assert o.has("mesh") : "No mesh option";
 					«irRoot.mesh.className» mesh = new «irRoot.mesh.className»();
 					mesh.jsonInit(o.get("mesh").toString());
 
 					// Module instanciation(s)
 					«FOR m : irRoot.modules»
 						«m.className» «m.name» = new «m.className»(mesh);
-						assert(o.has("«m.name»"));
+						assert o.has("«m.name»") : "No «m.name» option";
 						«m.name».jsonInit(o.get("«m.name»").toString());
 						«IF !m.main»«m.name».setMainModule(«irRoot.mainModule.name»);«ENDIF»
 					«ENDFOR»
@@ -205,17 +215,17 @@ class IrModuleContentProvider
 					«name».simulate();
 					«IF main && hasLevelDB»
 
-						«val dbName = irRoot.name + "DB"»
-						// Non regression testing
-						if («name».«nrName» != null && «name».«nrName».equals("«IrUtils.NonRegressionValues.CreateReference.toString»"))
-							«name».createDB("«dbName».ref");
-						if («name».«nrName» != null && «name».«nrName».equals("«IrUtils.NonRegressionValues.CompareToReference.toString»"))
-						{
-							«name».createDB("«dbName».current");
-							boolean ok = LevelDBUtils.compareDB("«dbName».current", "«dbName».ref");
-							LevelDBUtils.destroyDB("«dbName».current");
-							if (!ok) System.exit(1);
-						}
+					«val dbName = irRoot.name + "DB"»
+					// Non regression testing
+					if («name».«nrName» != null && «name».«nrName».equals("«IrUtils.NonRegressionValues.CreateReference.toString»"))
+						«name».createDB("«dbName».ref");
+					if («name».«nrName» != null && «name».«nrName».equals("«IrUtils.NonRegressionValues.CompareToReference.toString»"))
+					{
+						«name».createDB("«dbName».current");
+						boolean ok = LevelDBUtils.compareDB("«dbName».current", "«dbName».ref", «name».«nrToleranceName»);
+						LevelDBUtils.destroyDB("«dbName».current");
+						if (!ok) System.exit(1);
+					}
 					«ENDIF»
 				}
 				else
@@ -285,7 +295,8 @@ class IrModuleContentProvider
 				try
 				{
 					«FOR v : irRoot.variables.filter[!option]»
-					batch.put(bytes("«Utils.getDbKey(v)»"), LevelDBUtils.serialize(«Utils.getDbValue(it, v, '.')»));
+					batch.put(bytes("«Utils.getDbDescriptor(v)»"), LevelDBUtils.toByteArrayDescriptor(«JavaGeneratorUtils.getDbBytes(v.type)», new int[] {«JavaGeneratorUtils.getDbSizes(v.type, Utils.getDbValue(it, v, '.'))»}));
+					batch.put(bytes("«Utils.getDbKey(v)»"), LevelDBUtils.toByteArray(«Utils.getDbValue(it, v, '.')»));
 					«ENDFOR»
 
 					db.write(batch);

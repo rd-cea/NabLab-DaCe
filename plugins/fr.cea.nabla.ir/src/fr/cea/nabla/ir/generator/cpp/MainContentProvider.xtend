@@ -20,6 +20,7 @@ import static extension fr.cea.nabla.ir.IrRootExtensions.*
 @Data
 class MainContentProvider
 {
+
 	val extension JsonContentProvider jsonContentProvider
 
 	def getContentFor(IrModule it, boolean hasLevelDB)
@@ -64,13 +65,14 @@ class MainContentProvider
 		«IF hasLevelDB»
 
 			«val nrName = IrUtils.NonRegressionNameAndValue.key»
+			«val nrToleranceName = IrUtils.NonRegressionToleranceNameAndValue.key»
 			«val dbName = irRoot.name + "DB"»
 			// Non regression testing
 			if («name»->get«nrName.toFirstUpper()»() == "«IrUtils.NonRegressionValues.CreateReference.toString»")
 				«name»->createDB("«dbName».ref");
 			if («name»->get«nrName.toFirstUpper()»() == "«IrUtils.NonRegressionValues.CompareToReference.toString»") {
 				«name»->createDB("«dbName».current");
-				if (!compareDB("«dbName».current", "«dbName».ref"))
+				if (!compareDB("«dbName».current", "«dbName».ref", «name»->get«nrToleranceName.toFirstUpper()»()))
 					ret = 1;
 				leveldb::DestroyDB("«dbName».current", leveldb::Options());
 			}

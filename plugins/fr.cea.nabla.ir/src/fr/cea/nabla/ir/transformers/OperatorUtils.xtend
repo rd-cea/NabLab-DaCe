@@ -12,7 +12,6 @@ package fr.cea.nabla.ir.transformers
 import fr.cea.nabla.ir.ir.ArgOrVar
 import fr.cea.nabla.ir.ir.ArgOrVarRef
 import fr.cea.nabla.ir.ir.BaseType
-import fr.cea.nabla.ir.ir.Interval
 import fr.cea.nabla.ir.ir.IrFactory
 import fr.cea.nabla.ir.ir.PrimitiveType
 import org.eclipse.emf.ecore.util.EcoreUtil
@@ -32,7 +31,6 @@ class OperatorUtils
 			expression = a
 			operator = op
 		]
-
 	}
 
 	def create IrFactory::eINSTANCE.createReturn createReturnForBinaryOp(ArgOrVarRef a, ArgOrVarRef b, BinOpType binOpType, String op)

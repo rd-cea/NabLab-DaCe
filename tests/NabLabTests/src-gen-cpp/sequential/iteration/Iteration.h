@@ -18,6 +18,7 @@
 using namespace nablalib::utils;
 using namespace nablalib::types;
 
+
 /******************** Free functions declarations ********************/
 
 namespace iterationfreefuncs
@@ -29,6 +30,20 @@ bool assertEquals(double expected, double actual);
 
 class Iteration
 {
+
+private:
+	// Mesh and mesh variables
+	CartesianMesh2D& mesh;
+	size_t nbNodes;
+	size_t nbCells;
+
+
+	// Timers
+	Timer globalTimer;
+	Timer cpuTimer;
+	Timer ioTimer;
+	
+
 public:
 	Iteration(CartesianMesh2D& aMesh);
 	~Iteration();
@@ -56,18 +71,13 @@ public:
 	void updateVn() noexcept;
 	void oracleVn() noexcept;
 
-private:
-	// Mesh and mesh variables
-	CartesianMesh2D& mesh;
-	size_t nbNodes;
-	size_t nbCells;
-
-	// Options and global variables
+	// Options and global variables.
+	// Module variables are public members of the class to be accessible from Python.
 	int n;
 	int k;
 	int l;
 	static constexpr double maxTime = 0.1;
-	static constexpr double deltat = 1.0;
+	static constexpr double delta_t = 1.0;
 	double t_n;
 	double t_nplus1;
 	double t_n0;
@@ -88,11 +98,6 @@ private:
 	std::vector<double> vl_nplus1_l;
 	std::vector<double> vl_nplus1_lplus1;
 	std::vector<double> vl_nplus1_l0;
-
-	// Timers
-	Timer globalTimer;
-	Timer cpuTimer;
-	Timer ioTimer;
 };
 
 #endif

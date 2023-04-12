@@ -10,6 +10,8 @@
 package fr.cea.nabla.ir.generator.arcane
 
 import fr.cea.nabla.ir.IrTypeExtensions
+import fr.cea.nabla.ir.annotations.AcceleratorAnnotation
+import fr.cea.nabla.ir.ir.ArgOrVar
 import fr.cea.nabla.ir.ir.BaseType
 import fr.cea.nabla.ir.ir.Cardinality
 import fr.cea.nabla.ir.ir.Connectivity
@@ -17,6 +19,9 @@ import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.Expression
 import fr.cea.nabla.ir.ir.IrType
 import fr.cea.nabla.ir.ir.ItemIndex
+import fr.cea.nabla.ir.ir.ItemIndexDefinition
+import fr.cea.nabla.ir.ir.IterableInstruction
+import fr.cea.nabla.ir.ir.Iterator
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.PrimitiveType
 import java.util.ArrayList
@@ -34,18 +39,23 @@ class TypeContentProvider
 			{
 				val t = typeNameAndDimension
 				val dimension = t.value
-				switch dimension
-				{
-					case 0: t.key
-					case 1: "UniqueArray<" + t.key + ">"
-					case 2: "UniqueArray2<" + t.key + ">"
-					default: throw new RuntimeException("Unsupported dimension: " + t.value)
-				}
+				if (dimension == 0)
+					t.key
+				else
+					"NumArray<" + t.key + ",MDDim" + dimension + ">"
 			}
 			ConnectivityType: getVariableTypeName(it)
 			LinearAlgebraType: getLinearAlgebraClass(it)
 			default: throw new RuntimeException("Unexpected type: " + class.name)
 		}
+	}
+
+	/**
+	 * Return true if it is scalar or Real* or Real*x*, false otherwise.
+	 */
+	static def isArcaneScalarType(IrType it)
+	{
+		it instanceof BaseType && (it as BaseType).typeNameAndDimension.value == 0
 	}
 
 	static def isArcaneStlVector(IrType t)
@@ -78,46 +88,46 @@ class TypeContentProvider
 
 	static def getFunctionArgTypeName(IrType it, boolean const)
 	{
-		if (!IrTypeExtensions.isScalar(it) && it instanceof BaseType && (it as BaseType).primitive == PrimitiveType.REAL)
-		{
-			val dim = ((it as BaseType).sizes.size)
-			switch dim
-			{
-				case 1: '''RealArrayVariant'''
-				case 2: '''RealArray2Variant'''
-				default: throw new RuntimeException("Not yet implemented")
-			}
-		}
-		else
-			switch it
-			{
-				case null: null
-				BaseType:
-				{
-					val t = typeNameAndDimension
-					val dimension = t.value
-					switch dimension
-					{
-						case 0: '''«IF const»const «ENDIF»«t.key»'''
-						case 1: '''«IF const»Const«ENDIF»ArrayView<«t.key»>'''
-						default: '''«IF const»Const«ENDIF»Array«dimension»View<«t.key»>'''
-					}
-				}
-				LinearAlgebraType: IrTypeExtensions.getLinearAlgebraClass(it)
-				// no ConnectivityType in functions
-				default: throw new RuntimeException("Unexpected type: " + class.name)
-			}
-	}
-
-	static def CharSequence formatIteratorsAndIndices(IrType it, Iterable<ItemIndex> iterators, Iterable<Expression> indices)
-	{
 		switch it
 		{
+			case null: null
+			BaseType:
+			{
+				val t = typeNameAndDimension
+				val type = t.key
+				val dimension = t.value
+				// Real2, Real3, NumArray<Real, MDDim1> -> RealArrayVariant
+				if ((type == 'Real2' && dimension == 0)
+					|| (type == 'Real3' && dimension == 0)
+					|| (type == 'Real' && dimension == 1))
+					'''RealArrayVariant'''
+				// Real2x2, Real3x3, NumArray<Real, MDDim2> -> RealArray2Variant
+				else if ((type == 'Real2x2' && dimension == 0)
+					|| (type == 'Real3x3' && dimension == 0)
+					|| (type == 'Real' && dimension == 2))
+					'''RealArray2Variant'''
+				else switch dimension
+				{
+					case 0: '''«type»'''
+					default: '''NumArray<«type»,MDDim«dimension»>'''
+				}
+			}
+			LinearAlgebraType: IrTypeExtensions.getLinearAlgebraClass(it)
+			// no ConnectivityType in functions
+			default: throw new RuntimeException("Unexpected type: " + class.name)
+		}
+	}
+
+	static def CharSequence formatIteratorsAndIndices(ArgOrVar v, Iterable<ItemIndex> iterators, Iterable<Expression> indices)
+	{
+		switch v.type
+		{
 			case (iterators.empty && indices.empty): ''''''
+			case isNumArray(v.type): '''«FOR i : indices BEFORE '(' SEPARATOR ', ' AFTER ')'»«i.content»«ENDFOR»'''
 			BaseType: '''«FOR i : indices»[«i.content»]«ENDFOR»'''
 			// for the ArcaneStlVector, the setValue method must keep the ItemEnumerator arg (not the index)
-			LinearAlgebraType: '''«FOR i : getConnectivityIndexList(iterators, !TypeContentProvider.isArcaneStlVector(it)) SEPARATOR ', '»«i»«ENDFOR»«FOR i : indices SEPARATOR ', '»«i.content»«ENDFOR»'''
-			ConnectivityType: '''«FOR i : getConnectivityIndexList(iterators, false)»[«i»]«ENDFOR»«FOR i : indices»[«i.content»]«ENDFOR»'''
+			LinearAlgebraType: '''«FOR i : getConnectivityIndexList(iterators, v) SEPARATOR ', '»«i»«ENDFOR»«FOR i : indices SEPARATOR ', '»«i.content»«ENDFOR»'''
+			ConnectivityType: '''«FOR i : getConnectivityIndexList(iterators, v)»[«i»]«ENDFOR»«FOR i : indices»[«i.content»]«ENDFOR»'''
 		}
 	}
 
@@ -142,20 +152,23 @@ class TypeContentProvider
 
 	static def Pair<String, Integer> getTypeNameAndDimension(BaseType it)
 	{
+		val d = intSizes.size
+
 		if (primitive == PrimitiveType.REAL)
 		{
-			if (intSizes.size == 1)
+			if (d > 1)
 			{
-				val s = intSizes.get(0)
-				if (s == 2) return 'Real2' -> 0
-				if (s == 3) return 'Real3' -> 0
+				val last = intSizes.get(d-1)
+				val lastMinus1 = intSizes.get(d-2)
+				if (last == 2 && lastMinus1 == 2) return 'Real2x2' -> d - 2
+				else if (last == 3 && lastMinus1 == 3) return 'Real3x3' -> d - 2
 			}
-			else if (intSizes.size == 2)
+
+			if (d > 0)
 			{
-				val x = intSizes.get(0)
-				val y = intSizes.get(1)
-				if (x == 2 && y == 2) return 'Real2x2' -> 0
-				if (x == 3 && y == 3) return 'Real3x3' -> 0
+				val last = intSizes.get(d-1)
+				if (last == 2) return 'Real2' -> d - 1
+				if (last == 3) return 'Real3' -> d - 1
 			}
 		}
 
@@ -166,7 +179,7 @@ class TypeContentProvider
 			case INT: 'Int32'
 			case REAL: 'Real'
 		}
-		return typeName -> sizes.size
+		return typeName -> d
 	}
 
 	static def getResizeDims(IrType it)
@@ -194,6 +207,12 @@ class TypeContentProvider
 		}
 	}
 
+	static def isNumArray(IrType it)
+	{
+		it instanceof BaseType						// a BaseType...
+		&& !isArcaneScalarType(it)					// ...but not scalar
+	}
+
 	private static def getVariableDimensionName(int dimension, boolean hasSupport)
 	{
 		switch dimension
@@ -206,23 +225,51 @@ class TypeContentProvider
 	}
 
 	/* Waiting for more... and management of global matrices */
-	private static def getConnectivityIndexList(Iterable<ItemIndex> iterators, boolean fullIndex)
+	private static def getConnectivityIndexList(Iterable<ItemIndex> iterators, ArgOrVar v)
 	{
 		val indices = new ArrayList<String>
 		if (!iterators.empty)
 		{
-			val firstName = iterators.head.name
-			indices += (fullIndex ? firstName + ".index()" : firstName)
+			val firstIterator = iterators.head
+			if (firstIterator.isAnItemType)
+				if (ArcaneUtils.isArcaneManaged(v) || isArcaneStlVector(v.type)) // ArcaneStlVector needs ItemType
+					indices += firstIterator.name
+				else
+					indices += firstIterator.name + ".localId()"
+			else
+				indices += firstIterator.name
+
 			for (iterator : iterators.tail)
 			{
 				val name = iterator.name
-				if (firstName == name)
-					indices += name + ".index()"
+				if (iterator.isAnItemType)
+					indices += name + ".localId()"
 				else
 					indices += name
 			}
 		}
 		return indices
+	}
+
+	/**
+	 * Return true if ItemIndex represents ItemType instance false otherwise.
+	 * It is the case when ItemIndex is an iterator on a topLevelConnectivity (for example allCells)
+	 * only in an ENUMERATE_LOOP (RUN_COMMAND loops use index instead of ItemType instances).
+	 */
+	private static def isAnItemType(ItemIndex i)
+	{
+		val c = i.eContainer
+		switch c
+		{
+			case null: false
+			ItemIndexDefinition: false
+			Iterator:
+			{
+				val loop = c.eContainer as IterableInstruction
+				val cpuLoop = (AcceleratorAnnotation.tryToGet(loop) === null)
+				c.container.connectivityCall.args.empty && cpuLoop
+			}
+		}
 	}
 
 	private static def getNbElems(Connectivity it)

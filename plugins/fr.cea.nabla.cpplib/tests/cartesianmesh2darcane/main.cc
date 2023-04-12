@@ -10,6 +10,21 @@
 
 using namespace Arcane;
 
+/* Numbering nodes and cells			Numbering faces
+ *
+ *  15---16---17---18---19          |-27-|-28-|-29-|-30-|
+ *   | 8  | 9  | 10 | 11 |         10   11   12   13   14
+ *  10---11---12---13---14          |-23-|-24-|-25-|-26-|
+ *   | 4  | 5  | 6  | 7  |         5     6    7    8    9
+ *   5----6----7----8----9          |-19-|-20-|-21-|-22-|
+ *   | 0  | 1  | 2  | 3  |          0    1    2    3    4
+ *   0----1----2----3----4          |-15-|-16-|-17-|-18-|
+ *
+ * 	Si on a positionné l'option de construction des faces suivante dans le jeu de données
+ * 	<face-numbering-version>4</face-numbering-version>
+ */
+
+
 void
 assertSame(ItemGroup a, vector<int> b)
 {
@@ -68,15 +83,26 @@ executeCode(ISubDomain* sd)
 	assertSame(mesh->getGroup(CartesianMesh2D::RightCells), expected_right_cells);
 
 	// Arcane mesh does not have the same face numerotation than STL mesh
-	vector<int> expected_inner_faces{1, 4, 6, 9, 10, 12, 13, 14, 15, 16, 18, 19, 22, 23, 25, 26, 28};
+	vector<int> expected_inner_faces{1, 2, 3, 6, 7, 8, 11, 12, 13, 19, 20, 21, 22, 23, 24, 25, 26};
+	vector<int> expected_bottom_faces{15, 16, 17, 18};
+	vector<int> expected_top_faces{27, 28, 29, 30};
+	vector<int> expected_left_faces{0, 5, 10};
+	vector<int> expected_right_faces{4, 9, 14};
+	vector<int> expected_bottom_left_node{0};
+	vector<int> expected_bottom_right_node{4};
+	vector<int> expected_top_left_node{15};
+	vector<int> expected_top_right_node{19};
 
-	printItemGroup(mesh->getGroup(CartesianMesh2D::InnerFaces));
 	assertSame(mesh->getGroup(CartesianMesh2D::InnerFaces), expected_inner_faces);
+	assertSame(mesh->getGroup(CartesianMesh2D::BottomFaces), expected_bottom_faces);
+	assertSame(mesh->getGroup(CartesianMesh2D::TopFaces), expected_top_faces);
+	assertSame(mesh->getGroup(CartesianMesh2D::LeftFaces), expected_left_faces);
+	assertSame(mesh->getGroup(CartesianMesh2D::RightFaces), expected_right_faces);
 
-//	assertSame(mesh->getGroup(CartesianMesh2D::BottomLeftNode)[0], 0);
-//	assertSame(mesh->getGroup(CartesianMesh2D::BottomRightNode)[0], 4);
-//	assertSame(mesh->getGroup(CartesianMesh2D::TopLeftNode)[0], 15);
-//	assertSame(mesh->getGroup(CartesianMesh2D::TopRightNode)[0], 19);
+	assertSame(mesh->getGroup(CartesianMesh2D::BottomLeftNode), expected_bottom_left_node);
+	assertSame(mesh->getGroup(CartesianMesh2D::BottomRightNode), expected_bottom_right_node);
+	assertSame(mesh->getGroup(CartesianMesh2D::TopLeftNode), expected_top_left_node);
+	assertSame(mesh->getGroup(CartesianMesh2D::TopRightNode), expected_top_right_node);
 
 	tr->info() << "End of executeCode";
 }

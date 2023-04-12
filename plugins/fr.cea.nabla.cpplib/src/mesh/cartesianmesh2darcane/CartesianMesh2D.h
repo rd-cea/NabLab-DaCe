@@ -19,6 +19,8 @@
 #include <arcane/cartesianmesh/ICartesianMesh.h>
 #include <arcane/cartesianmesh/CellDirectionMng.h>
 #include <arcane/cartesianmesh/NodeDirectionMng.h>
+#include "arcane/ICartesianMeshGenerationInfo.h"
+#include <unistd.h>
 
 using namespace std;
 using namespace Arcane;
@@ -32,6 +34,10 @@ public:
 	inline static const string BottomNodes = "BottomNodes";
 	inline static const string LeftNodes = "LeftNodes";
 	inline static const string RightNodes = "RightNodes";
+	inline static const string TopLeftNode = "TopLeftNode";
+	inline static const string TopRightNode = "TopRightNode";
+	inline static const string BottomLeftNode = "BottomLeftNode";
+	inline static const string BottomRightNode = "BottomRightNode";
 
 	// CELLS
 	inline static const string InnerCells = "InnerCells";
@@ -42,6 +48,10 @@ public:
 
 	// FACES
 	inline static const string InnerFaces = "InnerFaces";
+	inline static const string LeftFaces = "LeftFaces";
+	inline static const string RightFaces = "RightFaces";
+	inline static const string TopFaces = "TopFaces";
+	inline static const string BottomFaces = "BottomFaces";
 
 public:
 	static CartesianMesh2D* createInstance(IMesh* mesh);
@@ -49,7 +59,7 @@ public:
 	FaceLocalId getCommonFace(const CellLocalId c1Id, const CellLocalId c2Id) const;
 
 	template <typename ItemType>
-	Int32 indexOf(const ItemLocalIdView<ItemType> v, const ItemLocalId id)
+	Int32 indexOf(const ItemLocalIdViewT<ItemType> v, const ItemLocalId id)
 	{
 		for (Int32 i(0) ; i < v.size(); ++i)
 			if (v[i] == id)
@@ -68,24 +78,35 @@ public:
 		return m_groups[name];
 	}
 
-	inline ItemLocalIdView<Node> getNodesOfCell(const CellLocalId cId) const
+	inline ItemLocalIdViewT<Node> getNodesOfCell(const CellLocalId cId) const
 	{ return m_umcv.cellNode().items(cId); }
 
-	inline ItemLocalIdView<Node> getNodesOfFace(const FaceLocalId fId) const
+	inline ItemLocalIdViewT<Node> getNodesOfFace(const FaceLocalId fId) const
 	{ return m_umcv.faceNode().items(fId); }
 
-	inline ItemLocalIdView<Cell> getCellsOfNode(const NodeLocalId nId) const
+	inline NodeLocalId getFirstNodeOfFace(const FaceLocalId fId) const
+	{ return getNodesOfFace(fId)[0]; }
+
+	inline NodeLocalId getSecondNodeOfFace(const FaceLocalId fId) const
+	{ return getNodesOfFace(fId)[1]; }
+
+	inline ItemLocalIdViewT<Cell> getCellsOfNode(const NodeLocalId nId) const
 	{ return m_umcv.nodeCell().items(nId); }
 
-	inline ItemLocalIdView<Cell> getCellsOfFace(const FaceLocalId fId) const
+	inline ItemLocalIdViewT<Cell> getCellsOfFace(const FaceLocalId fId) const
 	{ return m_umcv.faceCell().items(fId); }
 
-	inline ItemLocalIdView<Cell> getNeighbourCells(const CellLocalId cId) const
+	inline ItemLocalIdViewT<Cell> getNeighbourCells(const CellLocalId cId) const
 	{ return m_neighbour_cells.items(cId); }
 
-	inline ItemLocalIdView<Face> getFacesOfCell(const CellLocalId cId) const
+	inline ItemLocalIdViewT<Face> getFacesOfCell(const CellLocalId cId) const
 	{ return m_umcv.cellFace().items(cId); }
 
+	inline CellLocalId getFrontCell(const FaceLocalId fId) const
+	{ return getCellsOfFace(fId)[0]; }
+
+	inline CellLocalId getBackCell(const FaceLocalId fId) const
+	{ return getCellsOfFace(fId)[1]; }
 
 	inline FaceLocalId getTopFaceOfCell(const CellLocalId cId) const
 	{ return m_y_cell_dm.cellFace(cId).nextId(); }
@@ -116,7 +137,7 @@ private:
 	IMesh* m_mesh;
 	ICartesianMesh* m_cartesian_mesh;
 	UnstructuredMeshConnectivityView m_umcv;
-	IndexedItemConnectivityView<Cell, Cell> m_neighbour_cells;
+	IndexedItemConnectivityViewT<Cell, Cell> m_neighbour_cells;
 	CellDirectionMng m_x_cell_dm;
 	CellDirectionMng m_y_cell_dm;
 	NodeDirectionMng m_x_node_dm;

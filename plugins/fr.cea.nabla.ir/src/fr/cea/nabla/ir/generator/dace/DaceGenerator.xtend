@@ -24,6 +24,7 @@ import java.util.ArrayList
 import java.util.LinkedHashSet
 
 import static extension fr.cea.nabla.ir.ExtensionProviderExtensions.*
+import fr.cea.nabla.ir.transformers.SetMultithreadableLoops
 
 class DaceGenerator implements IrCodeGenerator
 {
@@ -48,7 +49,8 @@ class DaceGenerator implements IrCodeGenerator
 		#[
 			new DaceReplaceReductions(true), // parallel loops and reductions not yet implemented
 			new SetPythonOperatorNames,
-			new PreventFunctionOverloading
+			new PreventFunctionOverloading,
+			new SetMultithreadableLoops
 		]
 	}
 

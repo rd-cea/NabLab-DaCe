@@ -91,7 +91,11 @@ class InstructionContentProvider
 		«ELSE»
 			startIndex = 0
 		«ENDIF»
-		for «iterationBlock.indexName» in range(startIndex, «iterationBlock.nbElems»):
+		«IF multithreadable»
+			for «iterationBlock.indexName» in dace.map[startIndex:«iterationBlock.nbElems»]:
+		«ELSE»
+			for «iterationBlock.indexName» in range(startIndex, «iterationBlock.nbElems»):
+		«ENDIF»
 			«body.innerContent»
 	'''
 

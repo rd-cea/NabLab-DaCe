@@ -42,13 +42,11 @@ class SetMultithreadableLoops extends IrTransformationStep
 	{
 		// top level loop
 		val isTopLevelLoop = IrUtils.getContainerOfType(l.eContainer, IterableInstruction) === null
-		System.out.println("isTopLevelLoop: " + isTopLevelLoop);
 		if (!isTopLevelLoop) return false
 
 		// no external function calls
 		val externFunctions = l.eAllContents.filter(FunctionCall).map[function].filter(ExternFunction)
 		val externFunctionCall = externFunctions.exists[x | x.provider.extensionName != "LinearAlgebra" && x.provider.extensionName != "Math"]
-		System.out.println("externFunctionCall: " + externFunctionCall);
 		if (externFunctionCall) return false
 
 		// no variable in/out (only possible on local variable)
@@ -62,13 +60,11 @@ class SetMultithreadableLoops extends IrTransformationStep
 				// => a.eAllContents.filter(ArgOrVarRef) will not but l.left must be filtered
 				for(r : a.eAllContents.filter(ArgOrVarRef).filter[x | x !== a.left].toIterable)
 					if (r.target === outVar) {
-						System.out.println("r.target === outVar ");
 						return false
 					}
 			}
 		}
-		
-		System.out.println("Multithreadable loop [OK]");
+
 		return true
 	}
 }

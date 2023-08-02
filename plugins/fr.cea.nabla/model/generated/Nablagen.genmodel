@@ -9,15 +9,6 @@
   <genPackages prefix="Nablagen" basePackage="fr.cea.nabla" disposableProviderFactory="true"
       fileExtensions="ngen" ecorePackage="Nablagen.ecore#/">
     <genEnums typeSafeEnumCompatible="false" ecoreEnum="Nablagen.ecore#//TargetType">
-      <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/Java"/>
-      <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/CppSequential"/>
-      <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/StlThread"/>
-      <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/OpenMP"/>
-      <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/Kokkos"/>
-      <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/KokkosTeamThread"/>
-      <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/ArcaneSequential"/>
-      <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/ArcaneThread"/>
-      <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/ArcaneAccelerator"/>
       <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/Python"/>
       <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/Dace"/>
     </genEnums>

@@ -24,8 +24,6 @@ import java.util.Optional
 
 class IrCodeGeneratorFactory
 {
-	@Inject BackendFactory backendFactory
-
 	def IrCodeGenerator create(String wsPath, TargetType targetType)
 	{
 		create(wsPath, targetType, #[], null, null, null)
@@ -39,19 +37,11 @@ class IrCodeGeneratorFactory
 		targetVars.filter[x | !x.key.equals("DEBUG")].forEach[x | envVars += x.key -> x.value]
 		switch targetType
 		{
-			case JAVA: new JavaGenerator(hasLevelDB)
 			case DACE: new DaceGenerator(wsPath, hasLevelDB, envVars)
 			case PYTHON: new PythonGenerator(wsPath, hasLevelDB, envVars)
-			case ARCANE_SEQUENTIAL: new ArcaneGenerator(ArcaneGenerator.ApiType.Sequential, wsPath, envVars)
-			case ARCANE_THREAD: new ArcaneGenerator(ArcaneGenerator.ApiType.Thread, wsPath, envVars)
-			case ARCANE_ACCELERATOR: new ArcaneGenerator(ArcaneGenerator.ApiType.Accelerator, wsPath, envVars)
 			default:
 			{
-				val backend = backendFactory.getCppBackend(targetType, debug)
-				backend.traceContentProvider.maxIterationsVarName = iterationMaxVarName
-				backend.traceContentProvider.stopTimeVarName = timeMaxVarName
-				if (hasLevelDB) levelDB.variables.forEach[x | envVars += x.key -> x.value]
-				new CppGenerator(backend, wsPath, hasLevelDB, debug, envVars)
+				throw new RuntimeException("Unknown target type in IrCodeGeneratorFactory")
 			}
 		}
 	}

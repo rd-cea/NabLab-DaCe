@@ -85,16 +85,7 @@
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EEnum" name="TargetType">
-    <eLiterals name="Java" literal="Java"/>
-    <eLiterals name="CppSequential" value="1" literal="CppSequential"/>
-    <eLiterals name="StlThread" value="2" literal="StlThread"/>
-    <eLiterals name="OpenMP" value="3" literal="OpenMP"/>
-    <eLiterals name="Kokkos" value="4" literal="Kokkos"/>
-    <eLiterals name="KokkosTeamThread" value="5" literal="KokkosTeamThread"/>
-    <eLiterals name="ArcaneSequential" value="6" literal="ArcaneSequential"/>
-    <eLiterals name="ArcaneThread" value="7" literal="ArcaneThread"/>
-    <eLiterals name="ArcaneAccelerator" value="8" literal="ArcaneAccelerator"/>
-    <eLiterals name="Python" value="9" literal="Python"/>
-    <eLiterals name="Dace" value="10" literal="Dace"/>
+    <eLiterals name="Python" literal="Python"/>
+    <eLiterals name="Dace" value="1" literal="Dace"/>
   </eClassifiers>
 </ecore:EPackage>

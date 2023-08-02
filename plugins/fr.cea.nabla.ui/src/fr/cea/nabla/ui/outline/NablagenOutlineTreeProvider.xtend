@@ -54,17 +54,8 @@ class NablagenOutlineTreeProvider extends DefaultOutlineTreeProvider
 	{
 		switch type
 		{
-			case JAVA: if (interpreter) 'Interpreter' else 'Multi-thread Java'
-			case KOKKOS: 'Kokkos C++'
-			case KOKKOS_TEAM_THREAD: 'Kokkos C++ with teams of threads'
-			case OPEN_MP: 'OpenMP C++'
-			case CPP_SEQUENTIAL: 'Sequential C++'
-			case STL_THREAD: 'Multi-thread STL C++'
+			case PYTHON: 'Python'
 			case DACE: 'Data-Centric Parallel Programming'
-			case ARCANE: 'Arcane C++ framework'
-			case ARCANE_ACCELERATOR: 'Arcane Accelerator API'
-			case ARCANE_SEQUENTIAL: 'Arcane Sequential API'
-			case ARCANE_THREAD: 'Arcane Thread API'
 			default: 'Unknown target'
 		}
 	}
@@ -73,17 +64,8 @@ class NablagenOutlineTreeProvider extends DefaultOutlineTreeProvider
 	{
 		switch type
 		{
-			case JAVA: NablaUiUtils.createImage('icons/Java.gif')
-			case KOKKOS: NablaUiUtils.createImage('icons/Kokkos.gif')
-			case KOKKOS_TEAM_THREAD: NablaUiUtils.createImage('icons/KokkosTeamThread.gif')
-			case OPEN_MP: NablaUiUtils.createImage('icons/OpenMP.gif')
-			case CPP_SEQUENTIAL: NablaUiUtils.createImage('icons/CppSequential.gif')
-			case STL_THREAD: NablaUiUtils.createImage('icons/StlThread.gif')
+			case PYTHON: NablaUiUtils.createImage('icons/Python.gif')
 			case DACE: NablaUiUtils.createImage('icons/Dace.gif')
-			case ARCANE: NablaUiUtils.createImage('icons/StlThread.gif')
-			case ARCANE_ACCELERATOR: NablaUiUtils.createImage('icons/Cuda.gif')
-			case ARCANE_SEQUENTIAL: NablaUiUtils.createImage('icons/CppSequential.gif')
-			case ARCANE_THREAD: NablaUiUtils.createImage('icons/StlThread.gif')
 			default: null
 		}
 	}

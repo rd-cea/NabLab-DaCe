@@ -43,7 +43,6 @@ class NablagenValidator extends AbstractNablagenValidator
 	public static val NGEN_ELEMENT_NAME = "NablagenValidator::ElementName"
 	public static val NGEN_MODULE_NAME = "NablagenValidator::ModuleName"
 	public static val UNIQUE_INTERPRETER = "NablagenValidator::UniqueInterpreter"
-	public static val CPP_MANDATORY_VARIABLES = "NablagenValidator::CppMandatoryVariables"
 	public static val NO_TIME_ITERATOR_DEFINITION = "NablagenValidator::NoTimeIteratorDefinition"
 	public static val VAR_LINK_MAIN_VAR_TYPE = "NablagenValidator::VarLinkMainVarType"
 	public static val PROVIDER_FOR_EACH_EXTENSION = "NablagenValidator::ProviderForEachExtension"
@@ -52,7 +51,6 @@ class NablagenValidator extends AbstractNablagenValidator
 	static def getNgenElementNameMsg() { "Application/Provider name must start with an upper case" }
 	static def getNgenModuleNameMsg() { "Nabla module instance name must start with a lower case" }
 	static def getUniqueInterpreterMsg() { "Only one interpreter target allowed" }
-	static def getCppMandatoryVariablesMsg() { "'iterationMax' and 'timeMax' simulation variables must be defined (after timeStep) when using C++ code generator" }
 	static def getNoTimeIteratorDefinitionMsg() { "Iterate keyword not allowed in additional module" }
 	static def getVarLinkMainVarTypeMsg(String v1Type, String v2Type) { "Variables must have the same type: " + v1Type + " \u2260 " + v2Type }
 	static def getProviderForEachExtensionMsg(String extensionName) { "No provider found for extension: " + extensionName }
@@ -88,13 +86,6 @@ class NablagenValidator extends AbstractNablagenValidator
 			if (app !== null && app.targets.exists[x | x.interpreter && x !== it])
 				error(getUniqueInterpreterMsg(), NablagenPackage.Literals.TARGET__INTERPRETER, UNIQUE_INTERPRETER)
 		}
-	}
-
-	@Check(CheckType.FAST)
-	def void checkCppMandatoryVariables(NablagenApplication it)
-	{
-		if (targets.exists[x | x.type != TargetType::JAVA && x.type != TargetType::DACE] && (mainModule !== null && mainModule.iterationMax === null || mainModule.timeMax === null))
-			error(getCppMandatoryVariablesMsg(), NablagenPackage.Literals::NABLAGEN_APPLICATION__MAIN_MODULE, CPP_MANDATORY_VARIABLES)
 	}
 
 	@Check(CheckType.FAST)

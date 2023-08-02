@@ -159,26 +159,6 @@ class NablagenValidatorTest
 	}
 
 	@Test
-	def void testCheckCppMandatoryVariables()
-	{
-		val koNgenModel = ngenModel.concat('OpenMP
-			{
-				outputPath = "/tmp";
-				CMAKE_CXX_COMPILER = "/usr/bin/g++";
-			}')
-
-		val okNgenModel = koNgenModel.replace("timeStep = delta_t;", "timeStep = delta_t;
-			iterationMax = maxIter;
-			timeMax = maxTime;")
-
-		assertNgen(koNgenModel,
-			NablagenPackage.eINSTANCE.nablagenRoot,
-			NablagenValidator::CPP_MANDATORY_VARIABLES,
-			NablagenValidator::getCppMandatoryVariablesMsg(),
-			okNgenModel)
-	}
-
-	@Test
 	def void testCheckNoTimeIteratorDefinition()
 	{
 		val koRemapModel = nablaRemapModel.replace("Rj1: ", "iterate n while (true);\nRj1: ")
@@ -241,9 +221,9 @@ class NablagenValidatorTest
 				timeMax = maxTime;
 			}
 
-			Java
+			Python
 			{
-				outputPath = "/DepthInit/src-gen-java";
+				outputPath = "/DepthInit/src-gen-python";
 			}
 		'''
 
@@ -258,14 +238,14 @@ class NablagenValidatorTest
 		// Warning: no provider for BatiLib
 		vth.assertWarning(appNgen, NablagenPackage.eINSTANCE.target, NablagenValidator.PROVIDER_FOR_EACH_EXTENSION, NablagenValidator.getProviderForEachExtensionMsg("BatiLib"))
 
-		// Nablagen for a Java provider that will become the default provider
+		// Nablagen for a Python provider that will become the default provider
 		val providerNgenModel =
 		'''
 			Provider BatiLibJava : BatiLib
 			{
-				target = Java;
+				target = Python;
 				// compatibleTargets can be added here
-				outputPath = "/BatiLib/src-java";
+				outputPath = "/BatiLib/src-python";
 			}
 		'''
 		val providerNgen = ngenParseHelper.parse(providerNgenModel, rs)

@@ -21,7 +21,7 @@ class IrTransformationUtils
 		#[
 			new ReplaceReductions(replaceAllReductions),
 			new ReplaceAffectations,
-			new CreateArrayOperators,
+			// new CreateArrayOperators, // Disabled for DaCe backend
 			new ConfigureMesh,
 			new FillJobHLTs
 		]

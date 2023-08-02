@@ -26,7 +26,6 @@ import org.eclipse.xtext.scoping.IScopeProvider
 class NablagenExtensionHelper
 {
 	@Inject NablaGeneratorMessageDispatcher dispatcher
-	@Inject BackendFactory backendFactory
 	@Inject IScopeProvider scopeProvider
 	@Inject Provider<JniProviderGenerator> jniGeneratorProvider
 
@@ -53,11 +52,6 @@ class NablagenExtensionHelper
 				if (provider.target != target.type && !provider.compatibleTargets.contains(target.type))
 				{
 					dispatcher.post(MessageType::Warning, "    The target of the provider differs from target (" + provider.target.literal + " != " + target.type.literal + ") for extension: " + irProvider.extensionName)
-					if (target.type == TargetType::JAVA)
-					{
-						dispatcher.post(MessageType::Exec, "Starting JNI code generator: " + target.outputPath)
-						jniGenerator.transformProvider(backendFactory.getCppBackend(provider.target), irProvider as DefaultExtensionProvider, wsPath, target.outputPath, generate)
-					}
 				}
 			}
 		}

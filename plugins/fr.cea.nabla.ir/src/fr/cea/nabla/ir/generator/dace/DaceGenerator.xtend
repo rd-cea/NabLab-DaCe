@@ -18,7 +18,6 @@ import fr.cea.nabla.ir.generator.Utils
 import fr.cea.nabla.ir.ir.DefaultExtensionProvider
 import fr.cea.nabla.ir.ir.IrRoot
 import fr.cea.nabla.ir.transformers.PreventFunctionOverloading
-import fr.cea.nabla.ir.transformers.DaceReplaceReductions
 import fr.cea.nabla.ir.transformers.SetPythonOperatorNames
 import java.util.ArrayList
 import java.util.LinkedHashSet
@@ -47,7 +46,6 @@ class DaceGenerator implements IrCodeGenerator
 	override getIrTransformationSteps()
 	{
 		#[
-			new DaceReplaceReductions(true), // parallel loops and reductions not yet implemented
 			new SetPythonOperatorNames,
 			new PreventFunctionOverloading,
 			new SetMultithreadableLoops

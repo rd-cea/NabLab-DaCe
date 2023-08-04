@@ -113,56 +113,16 @@ class CreateArrayOperators extends IrTransformationStep
 		{
 			UnaryExpression:
 			{
-				// Only non scalar expressions needs array operations
-				if (e.type instanceof BaseType && (e.type as BaseType).sizes.size > 0)
-				{
-					val type = (e.type as BaseType)
-					val dimension = type.sizes.size
-					val module = IrUtils.getContainerOfType(e, IrModule)
-					val unaryOp = toIrUnaryOperation(type.primitive, dimension, e.operator)
-					module.functions += unaryOp
-					expressionsToDelete += e
-					return IrFactory::eINSTANCE.createFunctionCall =>
-					[
-						function = unaryOp
-						type = EcoreUtil.copy(e.type)
-						args += createArrayOperations(e.expression)
-					]
-				}
-				else
-				{
-					e.expression = createArrayOperations(e.expression)
-					return e
-				}
+				// In Python, operators can be directly applied to arrays
+				e.expression = createArrayOperations(e.expression)
+				return e
 			}
 			BinaryExpression:
 			{
-				// Only non scalar expressions needs array operations
-				if (e.type instanceof BaseType && (e.type as BaseType).sizes.size > 0)
-				{
-					val type = (e.type as BaseType)
-					val dimension = type.sizes.size
-					val module = IrUtils.getContainerOfType(e, IrModule)
-					val leftType = e.left.type as BaseType
-					val rightType = e.right.type as BaseType
-					val binOpType = opUtils.getBinOpType(leftType, rightType)
-					val binaryOp = toIrBinaryOperation(leftType.primitive, rightType.primitive, dimension, binOpType, e.operator)
-					module.functions += binaryOp
-					expressionsToDelete += e
-					return IrFactory::eINSTANCE.createFunctionCall =>
-					[
-						function = binaryOp
-						type = EcoreUtil.copy(e.type)
-						args += createArrayOperations(e.left)
-						args += createArrayOperations(e.right)
-					]
-				}
-				else
-				{
-					e.left = createArrayOperations(e.left)
-					e.right = createArrayOperations(e.right)
-					return e
-				}
+				// In Python, operators can be directly applied to arrays
+				e.left = createArrayOperations(e.left)
+				e.right = createArrayOperations(e.right)
+				return e
 			}
 			BaseTypeConstant:
 			{

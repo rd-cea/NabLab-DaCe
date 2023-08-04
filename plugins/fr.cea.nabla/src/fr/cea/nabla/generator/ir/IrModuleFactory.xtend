@@ -67,12 +67,14 @@ class IrModuleFactory
 
 	private def create IrFactory::eINSTANCE.createIrModule toIrModule(NablaModule nablaModule)
 	{
-		for (f : nablaModule.allUsedFunctionAndReductions)
+		for (f : nablaModule.allUsedFunctionAndReductions) {
+			println("Used function and reduction " + f)
 			switch f
 			{
 				Function case !f.external: functions += f.toIrInternFunction
-				Reduction: functions += f.toIrFunction
+				Reduction case f.name != "sum" && f.name != "prod": functions += f.toIrFunction
 			}
+		}
 
 		// Time loop jobs creation
 		if (nablaModule.iteration !== null)

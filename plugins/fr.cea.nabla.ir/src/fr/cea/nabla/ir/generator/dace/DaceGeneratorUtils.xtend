@@ -30,6 +30,7 @@ import static extension fr.cea.nabla.ir.IrRootExtensions.*
 class DaceGeneratorUtils
 {
 	static val SysFunction = #["min", "max", "abs"]
+	static val NumpyFunction = #["dot"]
 
 	static def getCodeName(Function f)
 	{
@@ -40,6 +41,8 @@ class DaceGeneratorUtils
 				if (f.provider.extensionName == "Math")
 					if (SysFunction.contains(f.name))
 						f.name
+					else if (NumpyFunction.contains(f.name))
+						'np.' + f.name
 					else
 						'math.' + f.name
 				else

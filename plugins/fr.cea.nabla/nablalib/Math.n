@@ -55,13 +55,7 @@ def <x, y> real[x] matVectProduct(real[x,y] a, real[y] b)
 }
 
 // scalar product
-def <x> real dot(real[x] a, real[x] b)
-{
-	let real result = 0.0;
-	forall i in [0;x[,
-		result = result + a[i]*b[i];
-	return result;
-}
+def <x> real dot(real[x] a, real[x] b);
 
 // 2D cross products
 def real det(real[2] a, real[2] b) return (a[0]*b[1] - a[1]*b[0]);

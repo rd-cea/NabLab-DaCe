@@ -85,7 +85,6 @@
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EEnum" name="TargetType">
-    <eLiterals name="Python" literal="Python"/>
-    <eLiterals name="Dace" value="1" literal="Dace"/>
+    <eLiterals name="Dace" literal="Dace"/>
   </eClassifiers>
 </ecore:EPackage>

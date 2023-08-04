@@ -46,16 +46,6 @@ class NablagenFileGenerator extends StandaloneGeneratorBase
 	 * the first one in the following list will be the default one during NabLab
 	 * code generation for the target «TargetType::DACE».
 	 */
-
-	/* 
-	 * Python Extension Provider
-	 */
-	Provider «nablaExtensionName»Python : «nablaExtensionName»
-	{
-		target = «TargetType::PYTHON.literal»;
-		// compatibleTargets can be added here
-		outputPath = "/«projectName»/src-python";
-	}
 	
 	/* 
 	 * DaCe Extension Provider
@@ -87,11 +77,6 @@ class NablagenFileGenerator extends StandaloneGeneratorBase
 			outputVariables = «nablaModuleName.toFirstLower».e as "Energy";
 		}
 
-		Python
-		{
-			outputPath = "/«projectName»/src-gen-python";
-		}
-		
 		Dace
 		{
 			outputPath = "/«projectName»/src-gen-dace";

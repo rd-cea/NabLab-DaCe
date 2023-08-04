@@ -121,7 +121,7 @@ abstract class GenerateAndExecuteTestBase
 			print("\tStarting " + target.type.literal)
 			val levelDBRef = resultsRef + "/" + ngenFileName + "DB.ref"
 			val jsonFile = dataFileWithoutExtension + ".json"
-			if (target.type == TargetType::PYTHON)
+			if (target.type == TargetType::DACE)
 				(!testExecutePython(outputPath, packageName, levelDBRef, jsonFile) ? nbErrors++)
 		}
 		(nbErrors > 0 ? Assert.fail(nbErrors + " error(s) !"))

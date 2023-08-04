@@ -98,7 +98,7 @@ class IrRootBuilder
 		// Browse IrRoot model providers which need to be filled with Nablaext providers
 		for (irProvider : ir.providers.filter[x | x.extensionName != "Math"])
 		{
-			val provider = ngenExtHelper.getDefaultProvider(ngenContext, TargetType::PYTHON, irProvider.extensionName)
+			val provider = ngenExtHelper.getDefaultProvider(ngenContext, TargetType::DACE, irProvider.extensionName)
 			if (provider === null)
 			{
 				dispatcher.post(MessageType::Error, '    No provider found for extension: ' + irProvider.extensionName)

@@ -9,7 +9,6 @@
   <genPackages prefix="Nablagen" basePackage="fr.cea.nabla" disposableProviderFactory="true"
       fileExtensions="ngen" ecorePackage="Nablagen.ecore#/">
     <genEnums typeSafeEnumCompatible="false" ecoreEnum="Nablagen.ecore#//TargetType">
-      <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/Python"/>
       <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/Dace"/>
     </genEnums>
     <genClasses ecoreClass="Nablagen.ecore#//NablagenRoot"/>

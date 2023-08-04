@@ -38,7 +38,6 @@ class IrCodeGeneratorFactory
 		switch targetType
 		{
 			case DACE: new DaceGenerator(wsPath, hasLevelDB, envVars)
-			case PYTHON: new PythonGenerator(wsPath, hasLevelDB, envVars)
 			default:
 			{
 				throw new RuntimeException("Unknown target type in IrCodeGeneratorFactory")

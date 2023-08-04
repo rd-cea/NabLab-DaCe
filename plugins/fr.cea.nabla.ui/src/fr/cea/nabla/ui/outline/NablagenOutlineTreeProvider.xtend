@@ -54,7 +54,6 @@ class NablagenOutlineTreeProvider extends DefaultOutlineTreeProvider
 	{
 		switch type
 		{
-			case PYTHON: 'Python'
 			case DACE: 'Data-Centric Parallel Programming'
 			default: 'Unknown target'
 		}
@@ -64,7 +63,6 @@ class NablagenOutlineTreeProvider extends DefaultOutlineTreeProvider
 	{
 		switch type
 		{
-			case PYTHON: NablaUiUtils.createImage('icons/Python.gif')
 			case DACE: NablaUiUtils.createImage('icons/Dace.gif')
 			default: null
 		}

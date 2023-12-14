@@ -13,7 +13,7 @@ MainModule ExplicitHeatEquation explicitHeatEquation
 {
 	nodeCoord = X;
 	time = t;
-	timeStep = δt;
+	timeStep = delta_t;
 	iterationMax = maxIterations;
 	timeMax = stopTime;
 }
@@ -66,9 +66,23 @@ StlThread
 	CMAKE_CXX_COMPILER = "/usr/bin/g++";
 }
 
-Arcane
+ArcaneSequential
 {
-	outputPath = "/NabLabExamples/src-gen-arcane";
+	outputPath = "/NabLabExamples/src-gen-arcane/sequential";
+	CMAKE_CXX_COMPILER = "/usr/bin/g++";
+	Arcane_ROOT = "$ENV{HOME}/arcane/install";
+}
+
+ArcaneThread
+{
+	outputPath = "/NabLabExamples/src-gen-arcane/thread";
+	CMAKE_CXX_COMPILER = "/usr/bin/g++";
+	Arcane_ROOT = "$ENV{HOME}/arcane/install";
+}
+
+ArcaneAccelerator
+{
+	outputPath = "/NabLabExamples/src-gen-arcane/accelerator";
 	CMAKE_CXX_COMPILER = "/usr/bin/g++";
 	Arcane_ROOT = "$ENV{HOME}/arcane/install";
 }

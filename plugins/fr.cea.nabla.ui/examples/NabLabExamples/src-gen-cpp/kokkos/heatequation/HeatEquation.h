@@ -23,6 +23,7 @@ using namespace nablalib::utils;
 using namespace nablalib::types;
 using namespace nablalib::utils::kokkos;
 
+
 /******************** Free functions declarations ********************/
 
 namespace heatequationfreefuncs
@@ -47,6 +48,25 @@ RealArray1D<x0> operatorSub(RealArray1D<x0> a, RealArray1D<x0> b);
 
 class HeatEquation
 {
+
+private:
+	void dumpVariables(int iteration, bool useTimer=true);
+
+	// Mesh and mesh variables
+	CartesianMesh2D& mesh;
+	size_t nbNodes;
+	size_t nbCells;
+	size_t nbFaces;
+
+	PvdFileWriter2D* writer;
+	std::string outputPath;
+
+	// Timers
+	Timer globalTimer;
+	Timer cpuTimer;
+	Timer ioTimer;
+	
+
 public:
 	HeatEquation(CartesianMesh2D& aMesh);
 	~HeatEquation();
@@ -66,18 +86,8 @@ public:
 	void setUpTimeLoopN() noexcept;
 	void executeTimeLoopN() noexcept;
 
-private:
-	void dumpVariables(int iteration, bool useTimer=true);
-
-	// Mesh and mesh variables
-	CartesianMesh2D& mesh;
-	size_t nbNodes;
-	size_t nbCells;
-	size_t nbFaces;
-
-	// Options and global variables
-	PvdFileWriter2D* writer;
-	std::string outputPath;
+	// Options and global variables.
+	// Module variables are public members of the class to be accessible from Python.
 	int outputPeriod;
 	int lastDump;
 	int n;
@@ -85,7 +95,7 @@ private:
 	int maxIterations;
 	static constexpr double PI = 3.1415926;
 	static constexpr double alpha = 1.0;
-	static constexpr double deltat = 0.001;
+	static constexpr double delta_t = 0.001;
 	double t_n;
 	double t_nplus1;
 	double t_n0;
@@ -97,11 +107,6 @@ private:
 	Kokkos::View<double*> f;
 	Kokkos::View<double*> outgoingFlux;
 	Kokkos::View<double*> surface;
-
-	// Timers
-	Timer globalTimer;
-	Timer cpuTimer;
-	Timer ioTimer;
 };
 
 #endif

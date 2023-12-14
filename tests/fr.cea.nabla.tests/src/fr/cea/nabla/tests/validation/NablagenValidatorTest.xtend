@@ -43,19 +43,19 @@ class NablagenValidatorTest
 
 	with CartesianMesh2D.*;
 
-	let ℝ maxTime = 0.1;
-	let ℕ maxIter = 500;
-	let ℝ δt = 1.0;
+	let real maxTime = 0.1;
+	let int maxIter = 500;
+	let real delta_t = 1.0;
 
-	ℝ t;
-	ℝ[2] X{nodes};
-	ℝ hv1{cells}, hv2{cells}, hv3{cells}, hv4{cells}, hv5{cells}, hv6{cells}, hv7{cells};
+	real t;
+	real[2] X{nodes};
+	real hv1{cells}, hv2{cells}, hv3{cells}, hv4{cells}, hv5{cells}, hv6{cells}, hv7{cells};
 
 	iterate n while (n+1 < maxIter && t^{n+1} < maxTime);
 
-	Hj1: ∀c∈cells(), hv3{c} = hv2{c};
-	Hj2: ∀c∈cells(), hv5{c} = hv3{c};
-	Hj3: ∀c∈cells(), hv7{c} = hv4{c} + hv5{c} + hv6{c};
+	Hj1: forall c in cells(), hv3{c} = hv2{c};
+	Hj2: forall c in cells(), hv5{c} = hv3{c};
+	Hj3: forall c in cells(), hv7{c} = hv4{c} + hv5{c} + hv6{c};
 	'''
 
 	val nablaRemapModel =
@@ -64,11 +64,11 @@ class NablagenValidatorTest
 
 	with CartesianMesh2D.*;
 
-	ℝ[2] X{nodes};
-	ℝ rv1{cells}, rv2{cells}, rv3{cells};
+	real[2] X{nodes};
+	real rv1{cells}, rv2{cells}, rv3{cells};
 
-	Rj1: ∀c∈cells(), rv2{c} = rv1{c};
-	Rj2: ∀c∈cells(), rv3{c} = rv2{c};
+	Rj1: forall c in cells(), rv2{c} = rv1{c};
+	Rj2: forall c in cells(), rv3{c} = rv2{c};
 	'''
 
 	val ngenModel = 
@@ -79,7 +79,7 @@ class NablagenValidatorTest
 	{
 		nodeCoord = X;
 		time = t;
-		timeStep = δt;
+		timeStep = delta_t;
 	}
 
 	AdditionalModule Remap r1
@@ -159,26 +159,6 @@ class NablagenValidatorTest
 	}
 
 	@Test
-	def void testCheckCppMandatoryVariables()
-	{
-		val koNgenModel = ngenModel.concat('OpenMP
-			{
-				outputPath = "/tmp";
-				CMAKE_CXX_COMPILER = "/usr/bin/g++";
-			}')
-
-		val okNgenModel = koNgenModel.replace("timeStep = δt;", "timeStep = δt;
-			iterationMax = maxIter;
-			timeMax = maxTime;")
-
-		assertNgen(koNgenModel,
-			NablagenPackage.eINSTANCE.nablagenRoot,
-			NablagenValidator::CPP_MANDATORY_VARIABLES,
-			NablagenValidator::getCppMandatoryVariablesMsg(),
-			okNgenModel)
-	}
-
-	@Test
 	def void testCheckNoTimeIteratorDefinition()
 	{
 		val koRemapModel = nablaRemapModel.replace("Rj1: ", "iterate n while (true);\nRj1: ")
@@ -198,7 +178,7 @@ class NablagenValidatorTest
 		assertNgen(koNgenModel,
 			NablagenPackage.eINSTANCE.varLink,
 			NablagenValidator::VAR_LINK_MAIN_VAR_TYPE,
-			NablagenValidator::getVarLinkMainVarTypeMsg("ℝ²{nodes}", "ℝ"),
+			NablagenValidator::getVarLinkMainVarTypeMsg("real²{nodes}", "real"),
 			ngenModel)
 		val okNgen = readModelsAndGetNgen(nablaHydroModel, nablaRemapModel, ngenModel)
 		vth.assertNoErrors(okNgen)
@@ -210,7 +190,7 @@ class NablagenValidatorTest
 		val batiLibModel =
 		'''
 			extension BatiLib;
-			def nextWaveHeight: → ℝ;
+			def real nextWaveHeight();
 		'''
 		val depthInitModel =
 		'''
@@ -219,14 +199,14 @@ class NablagenValidatorTest
 			with BatiLib.*;
 			with CartesianMesh2D.*;
 
-			let ℝ t = 0.0;
-			let ℝ maxTime = 0.1;
-			let ℕ maxIter = 500;
-			let ℝ δt = 1.0;
-			ℝ[2] X{nodes};
-			ℝ η{cells};
+			let real t = 0.0;
+			let real maxTime = 0.1;
+			let int maxIter = 500;
+			let real delta_t = 1.0;
+			real[2] X{nodes};
+			real nu{cells};
 
-			InitFromFile: ∀j∈cells(), η{j} = nextWaveHeight();
+			InitFromFile: forall j in cells(), nu{j} = nextWaveHeight();
 		'''
 		val appNgenModel =
 		'''
@@ -236,14 +216,14 @@ class NablagenValidatorTest
 			{
 				nodeCoord = X;
 				time = t;
-				timeStep = δt;
+				timeStep = delta_t;
 				iterationMax = maxIter;
 				timeMax = maxTime;
 			}
 
-			Java
+			Python
 			{
-				outputPath = "/DepthInit/src-gen-java";
+				outputPath = "/DepthInit/src-gen-python";
 			}
 		'''
 
@@ -258,14 +238,14 @@ class NablagenValidatorTest
 		// Warning: no provider for BatiLib
 		vth.assertWarning(appNgen, NablagenPackage.eINSTANCE.target, NablagenValidator.PROVIDER_FOR_EACH_EXTENSION, NablagenValidator.getProviderForEachExtensionMsg("BatiLib"))
 
-		// Nablagen for a Java provider that will become the default provider
+		// Nablagen for a Python provider that will become the default provider
 		val providerNgenModel =
 		'''
 			Provider BatiLibJava : BatiLib
 			{
-				target = Java;
+				target = Python;
 				// compatibleTargets can be added here
-				outputPath = "/BatiLib/src-java";
+				outputPath = "/BatiLib/src-python";
 			}
 		'''
 		val providerNgen = ngenParseHelper.parse(providerNgenModel, rs)
@@ -283,8 +263,8 @@ class NablagenValidatorTest
 
 			itemtypes { node, cell }
 
-			connectivity nodes: → {node};
-			connectivity cells: → {cell};
+			connectivity {node} nodes();
+			connectivity {cell} cells();
 		'''
 
 		val rs = resourceSetProvider.get

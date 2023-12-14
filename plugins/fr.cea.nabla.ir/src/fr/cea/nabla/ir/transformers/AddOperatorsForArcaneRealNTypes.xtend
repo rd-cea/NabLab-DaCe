@@ -102,16 +102,13 @@ class AddOperatorsForArcaneRealNTypes extends IrTransformationStep
 		block.instructions += IrFactory::eINSTANCE.createVariableDeclaration => [ variable = result ]
 
 		// loops and binary operation
-		val resultRef = opUtils.createArgOrVarRef(result)
 		val argRefs = inArgs.map[x | opUtils.createArgOrVarRef(x)]
-		val Interval[] intervals = newArrayOfSize(typeDimensions.size)
-		for (i : 0..<intervals.size) intervals.set(i, createInterval("i"+i, typeDimensions.get(i)))
 		switch inArgs.size
 		{
 			case 1:
 			{
 				val op = f.body.eAllContents.findFirst[x | x instanceof UnaryExpression] as UnaryExpression
-				block.instructions += opUtils.createLoopForUnaryOp(resultRef, argRefs.get(0), intervals, op.operator)
+				block.instructions += opUtils.createReturnForUnaryOp(argRefs.get(0), op.operator)
 			}
 			case 2:
 			{
@@ -119,7 +116,7 @@ class AddOperatorsForArcaneRealNTypes extends IrTransformationStep
 				val leftType = op.left.type as BaseType
 				val rightType = op.right.type as BaseType
 				val binOpType = opUtils.getBinOpType(leftType, rightType)
-				block.instructions += opUtils.createLoopForBinaryOp(resultRef, argRefs.get(0), argRefs.get(1), intervals, binOpType, op.operator)
+				block.instructions += opUtils.createReturnForBinaryOp(argRefs.get(0), argRefs.get(1), binOpType, op.operator)
 			}
 			default: throw new RuntimeException("")
 		}

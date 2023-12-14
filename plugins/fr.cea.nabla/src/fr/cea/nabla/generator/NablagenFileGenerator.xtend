@@ -17,14 +17,6 @@ import fr.cea.nabla.nablagen.TargetType
 
 class NablagenFileGenerator extends StandaloneGeneratorBase
 {
-	public static val CppGenFoldersByTarget = #{
-		TargetType::CPP_SEQUENTIAL -> "sequential",
-		TargetType::STL_THREAD -> "stl-thread",
-		TargetType::OPEN_MP -> "openmp",
-		TargetType::KOKKOS -> "kokkos",
-		TargetType::KOKKOS_TEAM_THREAD -> "kokkos-team"
-	}
-
 	def generate(NablaRoot moduleOrExtension, String genDir, String projectName)
 	{
 		val fsa = getConfiguredFileSystemAccess(genDir, false)
@@ -50,29 +42,19 @@ class NablagenFileGenerator extends StandaloneGeneratorBase
 	/*
 	 * This file contains the providers for the «nablaExtensionName» NabLab extension.
 	 * The list is ordered: the first Provider is the default one for the specified target.
-	 * For example, if you entered two «TargetType::STL_THREAD» Provider instances,
+	 * For example, if you entered two «TargetType::DACE» Provider instances,
 	 * the first one in the following list will be the default one during NabLab
-	 * code generation for the target «TargetType::STL_THREAD».
+	 * code generation for the target «TargetType::DACE».
 	 */
-
-	/*
-	 * C++ Extension Provider
-	 */
-	Provider «nablaExtensionName»Cpp : «nablaExtensionName»
-	{
-		target = «TargetType::CPP_SEQUENTIAL.literal»;
-		// compatibleTargets can be added here
-		outputPath = "/«projectName»/src-cpp/«CppGenFoldersByTarget.get(TargetType::CPP_SEQUENTIAL)»";
-	}
-
+	
 	/* 
-	 * Java Extension Provider
+	 * DaCe Extension Provider
 	 */
-	Provider «nablaExtensionName»Java : «nablaExtensionName»
+	Provider «nablaExtensionName»Dace : «nablaExtensionName»
 	{
-		target = «TargetType::JAVA.literal»;
+		target = «TargetType::DACE.literal»;
 		// compatibleTargets can be added here
-		outputPath = "/«projectName»/src-java";
+		outputPath = "/«projectName»/src-dace";
 	}
 	'''
 
@@ -84,7 +66,7 @@ class NablagenFileGenerator extends StandaloneGeneratorBase
 		{
 			nodeCoord = X;
 			time = t;
-			timeStep = δt;
+			timeStep = delta_t;
 			iterationMax = maxIter;
 			timeMax = maxTime;
 		}
@@ -95,53 +77,9 @@ class NablagenFileGenerator extends StandaloneGeneratorBase
 			outputVariables = «nablaModuleName.toFirstLower».e as "Energy";
 		}
 
-		Java
+		Dace
 		{
-			outputPath = "/«projectName»/src-gen-java";
-		}
-
-		CppSequential
-		{
-			outputPath = "/«projectName»/src-gen-cpp/«CppGenFoldersByTarget.get(TargetType::CPP_SEQUENTIAL)»";
-			CMAKE_CXX_COMPILER = "/usr/bin/g++";
-		}
-
-		StlThread
-		{
-			outputPath = "/«projectName»/src-gen-cpp/«CppGenFoldersByTarget.get(TargetType::STL_THREAD)»";
-			CMAKE_CXX_COMPILER = "/usr/bin/g++";
-		}
-
-		OpenMP
-		{
-			outputPath = "/«projectName»/src-gen-cpp/«CppGenFoldersByTarget.get(TargetType::OPEN_MP)»";
-			CMAKE_CXX_COMPILER = "/usr/bin/g++";
-		}
-
-		Kokkos
-		{
-			outputPath = "/«projectName»/src-gen-cpp/«CppGenFoldersByTarget.get(TargetType::KOKKOS)»";
-			CMAKE_CXX_COMPILER = "/usr/bin/g++";
-			Kokkos_ROOT = "$ENV{HOME}/kokkos/install";
-		}
-
-		KokkosTeamThread
-		{
-			outputPath = "/«projectName»/src-gen-cpp/«CppGenFoldersByTarget.get(TargetType::KOKKOS_TEAM_THREAD)»";
-			CMAKE_CXX_COMPILER = "/usr/bin/g++";
-			Kokkos_ROOT = "$ENV{HOME}/kokkos/install";
-		}
-
-		Arcane
-		{
-			outputPath = "/«projectName»/src-gen-arcane";
-			CMAKE_CXX_COMPILER = "/usr/bin/g++";
-			Arcane_ROOT = "$ENV{HOME}/arcane/install";
-		}
-
-		Python
-		{
-			outputPath = "/«projectName»/src-gen-python";
+			outputPath = "/«projectName»/src-gen-dace";
 		}
 	'''
 }

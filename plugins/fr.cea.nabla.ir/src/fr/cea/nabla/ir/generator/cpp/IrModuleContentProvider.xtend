@@ -10,6 +10,7 @@
 package fr.cea.nabla.ir.generator.cpp
 
 import fr.cea.nabla.ir.IrUtils
+import fr.cea.nabla.ir.generator.CppGeneratorUtils
 import fr.cea.nabla.ir.generator.Utils
 import fr.cea.nabla.ir.ir.BaseType
 import fr.cea.nabla.ir.ir.ConnectivityType
@@ -37,6 +38,7 @@ class IrModuleContentProvider
 	val JsonContentProvider jsonContentProvider
 	val JobCallerContentProvider jobCallerContentProvider
 	val MainContentProvider mainContentProvider
+	val AbstractPythonEmbeddingContentProvider pythonEmbeddingContentProvider
 
 	protected def getTypeDefs(IrModule it) ''''''
 	protected def getPrivateMethodHeaders(IrModule it) ''''''
@@ -49,7 +51,7 @@ class IrModuleContentProvider
 	#ifndef «name.HDefineName»
 	#define «name.HDefineName»
 
-	«includesContentProvider.getIncludes(hasLevelDB, (irRoot.postProcessing !== null))»
+	«includesContentProvider.getIncludes(main && hasLevelDB, (irRoot.postProcessing !== null))»
 	#include "«irRoot.mesh.className».h"
 	«IF irRoot.postProcessing !== null»#include "PvdFileWriter2D.h"«ENDIF»
 	«FOR provider : externalProviders»
@@ -60,6 +62,7 @@ class IrModuleContentProvider
 	«ENDIF»
 
 	«includesContentProvider.getUsings(hasLevelDB)»
+	
 	«IF main && irRoot.modules.size > 1»
 
 		«FOR m : irRoot.modules.filter[x | x !== it]»
@@ -90,33 +93,7 @@ class IrModuleContentProvider
 
 		«ENDIF»
 		«typeDefs»
-	public:
-		«className»(«irRoot.mesh.className»& aMesh);
-		~«className»();
-
-		void jsonInit(const char* jsonContent);
-		«IF !main»
-
-		inline void setMainModule(«irRoot.mainModule.className»* value)
-		{
-			mainModule = value,
-			mainModule->«name» = this;
-		}
-		«ENDIF»
-
-		void simulate();
-		«FOR j : jobs»
-		«jobContentProvider.getDeclarationContent(j)»
-		«ENDFOR»
-		«IF main && hasLevelDB»
-			const std::string& get«IrUtils.NonRegressionNameAndValue.key.toFirstUpper»()
-			{
-				return «IrUtils.NonRegressionNameAndValue.key»;
-			}
-
-			void createDB(const std::string& db_name);
-		«ENDIF»
-
+	
 	private:
 		«IF postProcessing !== null»
 		void dumpVariables(int iteration, bool useTimer=true);
@@ -144,7 +121,6 @@ class IrModuleContentProvider
 			«ENDIF»
 
 		«ENDIF»
-		// Options and global variables
 		«IF postProcessing !== null»
 			PvdFileWriter2D* writer;
 			std::string «IrUtils.OutputPathNameAndValue.key»;
@@ -154,7 +130,48 @@ class IrModuleContentProvider
 		«ENDFOR»
 		«IF main && hasLevelDB»
 			std::string «IrUtils.NonRegressionNameAndValue.key»;
+			double «IrUtils.NonRegressionToleranceNameAndValue.key»;
 		«ENDIF»
+
+		// Timers
+		Timer globalTimer;
+		Timer cpuTimer;
+		Timer ioTimer;
+		
+		«pythonEmbeddingContentProvider.getPrivateMembers(it)»
+	
+	public:
+		«className»(«irRoot.mesh.className»& aMesh);
+		~«className»();
+
+		void jsonInit(const char* jsonContent);
+		«IF !main»
+
+		inline void setMainModule(«irRoot.mainModule.className»* value)
+		{
+			mainModule = value,
+			mainModule->«name» = this;
+		}
+		«ENDIF»
+
+		void simulate();
+		«FOR j : jobs»
+		«jobContentProvider.getDeclarationContent(j)»
+		«ENDFOR»
+		«IF main && hasLevelDB»
+			const std::string& get«IrUtils.NonRegressionNameAndValue.key.toFirstUpper»()
+			{
+				return «IrUtils.NonRegressionNameAndValue.key»;
+			}
+			const double get«IrUtils.NonRegressionToleranceNameAndValue.key.toFirstUpper»()
+			{
+				return «IrUtils.NonRegressionToleranceNameAndValue.key»;
+			}
+			void createDB(const std::string& db_name);
+		«ENDIF»
+
+		// Options and global variables.
+		// Module variables are public members of the class to be accessible from Python.
 		«FOR v : variables»
 			«IF v.constExpr»
 				static constexpr «typeContentProvider.getCppType(v.type)» «v.name» = «expressionContentProvider.getContent(v.defaultValue)»;
@@ -164,13 +181,9 @@ class IrModuleContentProvider
 				«typeContentProvider.getCppType(v.type)» «v.name»;
 			«ENDIF»
 		«ENDFOR»
-
-		// Timers
-		Timer globalTimer;
-		Timer cpuTimer;
-		Timer ioTimer;
 	};
-
+	
+	«pythonEmbeddingContentProvider.getAllScopeStructContent(it)»
 	#endif
 	'''
 
@@ -266,7 +279,17 @@ class IrModuleContentProvider
 		const rapidjson::Value& «jsonContentProvider.getJsonName(nrName)» = options["«nrName»"];
 		assert(«jsonContentProvider.getJsonName(nrName)».IsString());
 		«nrName» = «jsonContentProvider.getJsonName(nrName)».GetString();
+		«val nrToleranceName = IrUtils.NonRegressionToleranceNameAndValue.key»
+		if (options.HasMember("«nrToleranceName»"))
+		{
+			const rapidjson::Value& «jsonContentProvider.getJsonName(nrToleranceName)» = options["«nrToleranceName»"];
+			assert(«jsonContentProvider.getJsonName(nrToleranceName)».IsDouble());
+			«nrToleranceName» = «jsonContentProvider.getJsonName(nrToleranceName)».GetDouble();
+		}
+		else
+			«nrToleranceName» = 0.0;
 		«ENDIF»
+		«pythonEmbeddingContentProvider.pythonJsonInitContent»
 		«IF main»
 
 			// Copy node coordinates
@@ -286,7 +309,7 @@ class IrModuleContentProvider
 	«ENDFOR»
 	«IF main»
 	«IF postProcessing !== null»
-
+	
 	void «className»::dumpVariables(int iteration, bool useTimer)
 	{
 		if (writer != NULL && !writer->isDisabled())
@@ -331,9 +354,11 @@ class IrModuleContentProvider
 		}
 	}
 	«ENDIF»
-
+	
+	«pythonEmbeddingContentProvider.getPythonInitializeContent(it)»
 	void «className»::simulate()
 	{
+		«pythonEmbeddingContentProvider.simulateProlog»
 		«traceContentProvider.getBeginOfSimuTrace(it)»
 
 		«jobCallerContentProvider.getCallsHeader(irRoot.main)»
@@ -357,7 +382,8 @@ class IrModuleContentProvider
 		// Batch to write all data at once
 		leveldb::WriteBatch batch;
 		«FOR v : irRoot.variables.filter[!option]»
-		batch.Put("«Utils.getDbKey(v)»", serialize(«Utils.getDbValue(it, v, '->')»));
+		putDBDescriptor(&batch, "«Utils.getDbDescriptor(v)»", «CppGeneratorUtils.getDbBytes(v.type)», std::vector<size_t>{«CppGeneratorUtils.getDbSizes(v.type, v.name)»});
+		putDBValue(&batch, "«Utils.getDbKey(v)»", «Utils.getDbValue(it, v, '->')»);
 		«ENDFOR»
 		status = db->Write(leveldb::WriteOptions(), &batch);
 		// Checking everything was ok
@@ -367,69 +393,6 @@ class IrModuleContentProvider
 		delete db;
 	}
 
-	/******************** Non regression testing ********************/
-
-	bool compareDB(const std::string& current, const std::string& ref)
-	{
-		// Final result
-		bool result = true;
-
-		// Loading ref DB
-		leveldb::DB* db_ref;
-		leveldb::Options db_options_ref;
-		db_options_ref.create_if_missing = false;
-		leveldb::Status status = leveldb::DB::Open(db_options_ref, ref, &db_ref);
-		if (!status.ok())
-		{
-			std::cerr << "No ref database to compare with ! Looking for " << ref << std::endl;
-			return false;
-		}
-		leveldb::Iterator* it_ref = db_ref->NewIterator(leveldb::ReadOptions());
-
-		// Loading current DB
-		leveldb::DB* db;
-		leveldb::Options db_options;
-		db_options.create_if_missing = false;
-		status = leveldb::DB::Open(db_options, current, &db);
-		assert(status.ok());
-		leveldb::Iterator* it = db->NewIterator(leveldb::ReadOptions());
-
-		// Results comparison
-		std::cerr << "# Comparing results ..." << std::endl;
-		for (it_ref->SeekToFirst(); it_ref->Valid(); it_ref->Next()) {
-			auto key = it_ref->key();
-			std::string value;
-			auto status = db->Get(leveldb::ReadOptions(), key, &value);
-			if (status.IsNotFound()) {
-				std::cerr << "ERROR - Key : " << key.ToString() << " not found." << endl;
-				result = false;
-			}
-			else {
-				if (value == it_ref->value().ToString())
-					std::cerr << key.ToString() << ": " << "OK" << std::endl;
-				else {
-					std::cerr << key.ToString() << ": " << "ERROR" << std::endl;
-					result = false;
-				}
-			}
-		}
-
-		// looking for key in the db that are not in the ref (new variables)
-		for (it->SeekToFirst(); it->Valid(); it->Next()) {
-			auto key = it->key();
-			std::string value;
-			if (db_ref->Get(leveldb::ReadOptions(), key, &value).IsNotFound()) {
-				std::cerr << "ERROR - Key : " << key.ToString() << " can not be compared (not present in the ref)." << std::endl;
-				result = false;
-			}
-		}
-
-		// Freeing memory
-		delete db;
-		delete db_ref;
-
-		return result;
-	}
 	«ENDIF»
 
 	int main(int argc, char* argv[]) 

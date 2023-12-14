@@ -82,11 +82,12 @@ class ExpressionContentProvider
 			// scalar type
 			value.content
 		else
-			'''np.full((«FOR s : type.baseSizes SEPARATOR ", "»«s.content»«ENDFOR»), «value.content», dtype=np.«type.primitive.numpyType»)'''
+			// Array is filled in by InstructionContentProvider - getContent(VariableDeclation)
+			'''dace.ndarray((«FOR s : type.baseSizes SEPARATOR ", "»«s.content»«ENDFOR»), dtype=«type.primitive.daceType»)'''
 	}
 
-	static def dispatch CharSequence getContent(VectorConstant it)
-	'''np.array([«FOR v : values SEPARATOR ', '»«v.content»«ENDFOR»], dtype=np.«type.primitive.numpyType»)'''
+	static def dispatch CharSequence getContent(VectorConstant it) // Unreached in heatequation, but in glace2d (computeBoundaryConditions(), I = ...)
+	'''np.array([«FOR v : values SEPARATOR ', '»«v.content»«ENDFOR»], dtype=«type.primitive.daceType»)'''
 
 	static def dispatch CharSequence getContent(Cardinality it)
 	{

@@ -50,14 +50,14 @@ abstract class GenerateAndExecuteTestBase
 		GenerateAndExecuteTestBase.projectRelativePath = projectRelativePathValue
 
 		val testProjectPath = System.getProperty("user.dir")
-		val basePath = testProjectPath.replace("tests/fr.cea.nabla.tests", "")
+		val basePath = testProjectPath.replace("tests" + File.separator + "fr.cea.nabla.tests", "")
 		projectAbsolutePath = basePath + projectRelativePath
-		nRepositoryPath = basePath + "plugins/fr.cea.nabla.ir/resources/.nablab.zip"
-		javaLibPath = basePath + "plugins/fr.cea.nabla.javalib/bin/:" + basePath + "plugins/fr.cea.nabla.javalib/target/*"
-		commonMath3Path = basePath + "plugins/commons-math3/*"
-		levelDBPath = basePath + "plugins/leveldb/*"
+		nRepositoryPath = basePath + Paths.get("plugins", "fr.cea.nabla.ir", "resources", ".nablab.zip").toString
+		javaLibPath = basePath + Paths.get("plugins", "fr.cea.nabla.javalib", "bin").toString + File.separator + File.pathSeparator + basePath + Paths.get("plugins", "fr.cea.nabla.javalib", "target").toString + File.separator + "*"
+		commonMath3Path = basePath + Paths.get("plugins", "commons-math3").toString + File.separator + "*"
+		levelDBPath = basePath + Paths.get("plugins", "leveldb").toString + File.separator + "*"
 		git = new GitUtils(basePath)
-		GenerateAndExecuteTestBase.outputPath = WsPath + '/' + projectName
+		GenerateAndExecuteTestBase.outputPath = Paths.get(WsPath, projectName).toString
 		println("test working directory: " + GenerateAndExecuteTestBase.outputPath)
 
 		// Simpliest is to copy all NablaExamples tree in tmpDir
@@ -75,10 +75,10 @@ abstract class GenerateAndExecuteTestBase
 		val packageName = ngenFileName.toLowerCase
 		val models = new ArrayList<CharSequence>
 		for (nFileName : nFileNames)
-			models += readFileAsString(GenerateAndExecuteTestBase.projectAbsolutePath + "/src/" + packageName + "/" + nFileName + ".n")
-		var genmodel = readFileAsString(GenerateAndExecuteTestBase.projectAbsolutePath + "/src/" + packageName + "/" + ngenFileName + ".ngen")
-		compilationHelper.generateCode(models, genmodel, GenerateAndExecuteTestBase.projectAbsolutePath.replace('/' + projectName, ''), projectName)
-		testNoGitDiff("/" + packageName) // Add "/" to avoid a false positiv on explicitheatequation fail or implicitheatequation
+			models += readFileAsString(Paths.get(GenerateAndExecuteTestBase.projectAbsolutePath, "src", packageName, nFileName + ".n").toString)
+		var genmodel = readFileAsString(Paths.get(GenerateAndExecuteTestBase.projectAbsolutePath, "src", packageName, ngenFileName + ".ngen").toString)
+		compilationHelper.generateCode(models, genmodel, GenerateAndExecuteTestBase.projectAbsolutePath.replace(File.separator + projectName, ''), projectName)
+		testNoGitDiff(File.separator + packageName) // Add a separator to avoid a false positiv on explicitheatequation fail or implicitheatequation
 	}
 
 	protected def testExecuteModule(String moduleName)
@@ -91,15 +91,7 @@ abstract class GenerateAndExecuteTestBase
 	{
 		println("\n" + ngenFileName)
 		// check Env Variables
-		val kokkosRoot = System.getenv(KokkosENV)
 		val leveldbRoot = System.getenv(LeveldbENV)
-		val arcaneRoot = System.getenv(ArcaneENV)
-		if (kokkosRoot.nullOrEmpty || leveldbRoot.nullOrEmpty || arcaneRoot.nullOrEmpty)
-		{
-			val envErr = "To execute this test, environment variables must be set: " + KokkosENV + ", " + LeveldbENV + ", " + ArcaneENV;
-			println(envErr)
-			Assert.fail(envErr)
-		}
 
 		val packageName = ngenFileName.toLowerCase
 		val models = new ArrayList<CharSequence>
@@ -108,9 +100,6 @@ abstract class GenerateAndExecuteTestBase
 		var genmodel = readFileAsString(GenerateAndExecuteTestBase.outputPath + "/src/" + packageName + "/" + ngenFileName + ".ngen")
 
 		// Adapt genModel for LevelDBPath & KokkosPath & tmpOutputDir
-		genmodel =  genmodel.replace(javaBlock.toString, levelDBPath.levelDBBlock.toString + javaBlock.toString)
-		genmodel = genmodel.replace("$ENV{HOME}/kokkos/install", kokkosRoot)
-		genmodel = genmodel.replace("$ENV{HOME}/arcane/install", arcaneRoot)
 		compilationHelper.generateCode(models, genmodel, WsPath, projectName)
 
 		// unzip nabla resources
@@ -130,21 +119,10 @@ abstract class GenerateAndExecuteTestBase
 			val dataFileWithoutExtension =  GenerateAndExecuteTestBase.projectAbsolutePath + "/src/" + packageName + "/" + ngenFileName
 
 			print("\tStarting " + target.type.literal)
-			if (target.type == TargetType::ARCANE)
-			{
-				(!testExecuteArcane(outputPath, packageName, resultsRef, dataFileWithoutExtension + ".arc", ngenFileName) ? nbErrors++)
-			}
-			else
-			{
-				val levelDBRef = resultsRef + "/" + ngenFileName + "DB.ref"
-				val jsonFile = dataFileWithoutExtension + ".json"
-				if (target.type == TargetType::JAVA)
-					(!testExecuteJava(outputPath, packageName, levelDBRef, jsonFile, nFileNames.get(0)) ? nbErrors++)
-				else if (target.type == TargetType::PYTHON)
-					(!testExecutePython(outputPath, packageName, levelDBRef, jsonFile) ? nbErrors++)
-				else
-					(!testExecuteCpp(outputPath, packageName, levelDBRef, jsonFile, ngenFileName) ? nbErrors++)
-			}
+			val levelDBRef = resultsRef + "/" + ngenFileName + "DB.ref"
+			val jsonFile = dataFileWithoutExtension + ".json"
+			if (target.type == TargetType::DACE)
+				(!testExecutePython(outputPath, packageName, levelDBRef, jsonFile) ? nbErrors++)
 		}
 		(nbErrors > 0 ? Assert.fail(nbErrors + " error(s) !"))
 	}
@@ -152,14 +130,6 @@ abstract class GenerateAndExecuteTestBase
 	private def testNoGitDiff(String packageName)
 	{
 		Assert.assertTrue(git.noGitDiff(GenerateAndExecuteTestBase.projectRelativePath, packageName))
-	}
-
-	private def getJavaBlock()
-	{
-		'''
-		Java
-		{
-		'''
 	}
 
 	private def getLevelDBBlock(String levelDBPath)
@@ -171,119 +141,6 @@ abstract class GenerateAndExecuteTestBase
 		}
 
 		'''
-	}
-
-	private def testExecuteCpp(String outputPath, String packageName, String levelDBRef, String jsonFile, String moduleName)
-	{
-		var pb = new ProcessBuilder("/bin/bash",
-			System.getProperty("user.dir") + "/src/fr/cea/nabla/tests/executeCpp.sh",
-			outputPath, // output src-gen path
-			packageName,
-			levelDBRef,
-			jsonFile,
-			moduleName)
-		var process = pb.start
-		val exitVal = process.waitFor
-		if (exitVal.equals(0))
-			println(" -> Ok")
-		if (exitVal.equals(10))
-		{
-			val logPath = simplifyPath(outputPath + "/" + packageName + "/CMake.log")
-			println(" -> Configure Error. See " + logPath)
-			//println("\t" + readFileAsString(logPath))
-			return false
-		}
-		if (exitVal.equals(20))
-		{
-			val logPath = simplifyPath(outputPath + "/" + packageName + "/make.log")
-			println(" -> Compile Error. See " + logPath)
-			//println("\t" + readFileAsString(logPath))
-			return false
-		}
-		if (exitVal.equals(30))
-		{
-			val logPath = simplifyPath(outputPath + "/" + packageName + "/exec.err")
-			println(" -> Execute Error. See " + logPath)
-			//println("\t" + readFileAsString(logPath))
-			// Glace2d + KokkosTeam implies levelDb diffs -> to avoid CI fails we ignore them
-			if (moduleName == "Glace2d" && outputPath.contains("kokkos-team"))
-				return true
-			return false
-		}
-		return true
-	}
-
-	private def testExecuteJava(String outputPath, String packageName, String levelDBRef, String jsonFile, String moduleName)
-	{
-		val gsonPath = Gson.protectionDomain.codeSource.location.toString
-		val guavaPath = PeekingIterator.protectionDomain.codeSource.location.toString
-		val apacheCommonIOPath = FileUtils.protectionDomain.codeSource.location.toString
-		var pb = new ProcessBuilder("/bin/bash",
-			System.getProperty("user.dir") + "/src/fr/cea/nabla/tests/executeJava.sh",
-			outputPath, // output src-gen path
-			packageName,
-			moduleName,
-			javaLibPath,
-			levelDBPath,
-			gsonPath,
-			levelDBRef,
-			jsonFile,
-			guavaPath,
-			commonMath3Path,
-			apacheCommonIOPath)
-		var process = pb.start
-		val exitVal = process.waitFor
-		if (exitVal.equals(0))
-			println(" -> Ok")
-		if (exitVal.equals(10))
-		{
-			val logPath = simplifyPath(outputPath + "/" + packageName + "/javac.err")
-			println(" -> Compile Error. See " + logPath)
-			return false
-		}
-		if (exitVal.equals(20))
-		{
-			val logPath = simplifyPath(outputPath + "/" + packageName + "/exec.err")
-			println(" -> Execute Error. See " + logPath)
-			return false
-		}
-		return true
-	}
-
-	private def testExecuteArcane(String outputPath, String packageName, String stdEnvVerifRef, String arcFile, String moduleName)
-	{
-		var pb = new ProcessBuilder("/bin/bash",
-			System.getProperty("user.dir") + "/src/fr/cea/nabla/tests/executeArcane.sh",
-			outputPath, // output src-gen path
-			packageName,
-			stdEnvVerifRef,
-			arcFile,
-			moduleName)
-		var process = pb.start
-		val exitVal = process.waitFor
-		if (exitVal.equals(0))
-			println(" -> Ok")
-		if (exitVal.equals(10))
-		{
-			val logPath = simplifyPath(outputPath + "/" + packageName + "/CMake.log")
-			println(" -> Configure Error. See " + logPath)
-			//println("\t" + readFileAsString(logPath))
-			return false
-		}
-		if (exitVal.equals(20))
-		{
-			val logPath = simplifyPath(outputPath + "/" + packageName + "/make.log")
-			println(" -> Compile Error. See " + logPath)
-			//println("\t" + readFileAsString(logPath))
-			return false
-		}
-		if (exitVal.equals(30))
-		{
-			val logPath = simplifyPath(outputPath + "/" + packageName + "/exec.err")
-			println(" -> Execute Error. See " + logPath)
-			return false
-		}
-		return true
 	}
 
 	private def testExecutePython(String outputPath, String packageName, String levelDBRef, String jsonFile)
@@ -302,9 +159,6 @@ abstract class GenerateAndExecuteTestBase
 		{
 			val logPath = simplifyPath(outputPath + "/" + packageName + "/exec.err")
 			println(" -> Execute Error. See " + logPath)
-			// ImplicitHeatEquation implies levelDb diffs -> to avoid CI fails we ignore them
-			if (packageName == "implicitheatequation")
-				return true
 			return false
 		}
 		return true

@@ -15,6 +15,7 @@ import fr.cea.nabla.ir.ir.Expression
 import fr.cea.nabla.ir.ir.Instruction
 import fr.cea.nabla.ir.ir.IrFactory
 import fr.cea.nabla.ir.ir.IrRoot
+import fr.cea.nabla.ir.ir.IterableInstruction
 import fr.cea.nabla.ir.ir.IterationBlock
 import fr.cea.nabla.ir.ir.ReductionInstruction
 import fr.cea.nabla.ir.ir.Variable
@@ -30,7 +31,7 @@ class ReplaceReductions extends IrTransformationStep
 
 	override getDescription()
 	{
-		"Replace reductions by loops"
+		"Replace reductions with loops"
 	}
 
 	/**
@@ -40,11 +41,11 @@ class ReplaceReductions extends IrTransformationStep
 	override transform(IrRoot ir, (String)=>void traceNotifier)
 	{
 		var reductions = ir.eAllContents.filter(ReductionInstruction)
-		if (!replaceAllReductions) reductions = reductions.filter[x | !IrUtils.isTopLevelConnectivity(x.iterationBlock)]
+		if (!replaceAllReductions) reductions = reductions.filter[x | !isTopLevelConnectivity(x)]
 
 		for (reduction : reductions.toList)
 		{
-			val functionCall = createFunctionCall(reduction)
+			val functionCall = createVectorOperation(reduction)
 			val affectation = createAffectation(reduction.result, functionCall)
 			val innerInstructions = new ArrayList<Instruction>
 			innerInstructions += reduction.innerInstructions.filter[x | !(x instanceof ReductionInstruction)]
@@ -61,6 +62,35 @@ class ReplaceReductions extends IrTransformationStep
 	{
 		// nothing to do
 	}
+
+
+	private def Expression createVectorOperation(ReductionInstruction reduction)
+	{
+		val op = if (reduction.binaryFunction.name.startsWith("sumR")) {
+			"+"
+		} else if (reduction.binaryFunction.name.startsWith("prodR")) {
+			"*"
+		} else {
+			System.err.println("Unknown binary function: " + reduction.binaryFunction.name)
+			""
+		}
+
+		if (op != "") {
+			IrFactory::eINSTANCE.createBinaryExpression =>
+			[
+				left = IrFactory::eINSTANCE.createArgOrVarRef =>
+				[
+					target = reduction.result
+					type = EcoreUtil::copy(target.type)
+				]
+				right = reduction.lambda
+				operator = op
+			]
+		} else {
+			createFunctionCall(reduction)
+		}
+	}
+
 
 	private def Expression createFunctionCall(ReductionInstruction reduction)
 	{
@@ -99,7 +129,10 @@ class ReplaceReductions extends IrTransformationStep
 				instructions += _instructions
 			]
 		}
-		// A reduction cannot be executed in // (because of +=)
-		multithreadable = false
+	}
+
+	private def isTopLevelConnectivity(ReductionInstruction r)
+	{
+		IrUtils::getContainerOfType(r.eContainer, IterableInstruction) === null
 	}
 }

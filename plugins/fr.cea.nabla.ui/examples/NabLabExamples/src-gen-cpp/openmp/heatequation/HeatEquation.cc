@@ -48,6 +48,7 @@ template<size_t x0>
 RealArray1D<x0> operatorAdd(RealArray1D<x0> a, RealArray1D<x0> b)
 {
 	RealArray1D<x0> result;
+	#pragma omp parallel for
 	for (size_t ix0=0; ix0<x0; ix0++)
 	{
 		result[ix0] = a[ix0] + b[ix0];
@@ -59,6 +60,7 @@ template<size_t x0>
 RealArray1D<x0> operatorMult(double a, RealArray1D<x0> b)
 {
 	RealArray1D<x0> result;
+	#pragma omp parallel for
 	for (size_t ix0=0; ix0<x0; ix0++)
 	{
 		result[ix0] = a * b[ix0];
@@ -70,6 +72,7 @@ template<size_t x0>
 RealArray1D<x0> operatorSub(RealArray1D<x0> a, RealArray1D<x0> b)
 {
 	RealArray1D<x0> result;
+	#pragma omp parallel for
 	for (size_t ix0=0; ix0<x0; ix0++)
 	{
 		result[ix0] = a[ix0] - b[ix0];
@@ -139,7 +142,7 @@ HeatEquation::jsonInit(const char* jsonContent)
 
 /**
  * Job computeOutgoingFlux called @1.0 in executeTimeLoopN method.
- * In variables: V, center, deltat, surface, u_n
+ * In variables: V, center, delta_t, surface, u_n
  * Out variables: outgoingFlux
  */
 void HeatEquation::computeOutgoingFlux() noexcept
@@ -162,7 +165,7 @@ void HeatEquation::computeOutgoingFlux() noexcept
 				reduction0 = heatequationfreefuncs::sumR0(reduction0, reduction1);
 			}
 		}
-		outgoingFlux[j1Cells] = deltat / V[j1Cells] * reduction0;
+		outgoingFlux[j1Cells] = delta_t / V[j1Cells] * reduction0;
 	}
 }
 
@@ -196,12 +199,12 @@ void HeatEquation::computeSurface() noexcept
 
 /**
  * Job computeTn called @1.0 in executeTimeLoopN method.
- * In variables: deltat, t_n
+ * In variables: delta_t, t_n
  * Out variables: t_nplus1
  */
 void HeatEquation::computeTn() noexcept
 {
-	t_nplus1 = t_n + deltat;
+	t_nplus1 = t_n + delta_t;
 }
 
 /**
@@ -284,7 +287,7 @@ void HeatEquation::iniTime() noexcept
 
 /**
  * Job computeUn called @2.0 in executeTimeLoopN method.
- * In variables: deltat, f, outgoingFlux, u_n
+ * In variables: delta_t, f, outgoingFlux, u_n
  * Out variables: u_nplus1
  */
 void HeatEquation::computeUn() noexcept
@@ -292,7 +295,7 @@ void HeatEquation::computeUn() noexcept
 	#pragma omp parallel for
 	for (size_t jCells=0; jCells<nbCells; jCells++)
 	{
-		u_nplus1[jCells] = f[jCells] * deltat + u_n[jCells] + outgoingFlux[jCells];
+		u_nplus1[jCells] = f[jCells] * delta_t + u_n[jCells] + outgoingFlux[jCells];
 	}
 }
 
@@ -367,7 +370,7 @@ void HeatEquation::executeTimeLoopN() noexcept
 		// Progress
 		std::cout << progress_bar(n, maxIterations, t_n, stopTime, 25);
 		std::cout << __BOLD__ << __CYAN__ << Timer::print(
-			eta(n, maxIterations, t_n, stopTime, deltat, globalTimer), true)
+			eta(n, maxIterations, t_n, stopTime, delta_t, globalTimer), true)
 			<< __RESET__ << "\r";
 		std::cout.flush();
 	

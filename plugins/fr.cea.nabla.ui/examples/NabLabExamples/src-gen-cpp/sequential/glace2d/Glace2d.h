@@ -19,6 +19,7 @@
 using namespace nablalib::utils;
 using namespace nablalib::types;
 
+
 /******************** Free functions declarations ********************/
 
 namespace glace2dfreefuncs
@@ -64,6 +65,29 @@ RealArray2D<x0,x1> operatorMult(RealArray2D<x0,x1> a, double b);
 
 class Glace2d
 {
+
+private:
+	void dumpVariables(int iteration, bool useTimer=true);
+
+	// Mesh and mesh variables
+	CartesianMesh2D& mesh;
+	size_t nbNodes;
+	size_t nbCells;
+	size_t nbTopNodes;
+	size_t nbBottomNodes;
+	size_t nbLeftNodes;
+	size_t nbRightNodes;
+	size_t nbInnerNodes;
+
+	PvdFileWriter2D* writer;
+	std::string outputPath;
+
+	// Timers
+	Timer globalTimer;
+	Timer cpuTimer;
+	Timer ioTimer;
+	
+
 public:
 	Glace2d(CartesianMesh2D& aMesh);
 	~Glace2d();
@@ -98,22 +122,8 @@ public:
 	void computeEn() noexcept;
 	void computeUn() noexcept;
 
-private:
-	void dumpVariables(int iteration, bool useTimer=true);
-
-	// Mesh and mesh variables
-	CartesianMesh2D& mesh;
-	size_t nbNodes;
-	size_t nbCells;
-	size_t nbTopNodes;
-	size_t nbBottomNodes;
-	size_t nbLeftNodes;
-	size_t nbRightNodes;
-	size_t nbInnerNodes;
-
-	// Options and global variables
-	PvdFileWriter2D* writer;
-	std::string outputPath;
+	// Options and global variables.
+	// Module variables are public members of the class to be accessible from Python.
 	int outputPeriod;
 	int lastDump;
 	int n;
@@ -121,15 +131,15 @@ private:
 	int maxIterations;
 	static constexpr double gamma = 1.4;
 	static constexpr double xInterface = 0.5;
-	static constexpr double deltatCfl = 0.4;
-	static constexpr double rhoIniZg = 1.0;
-	static constexpr double rhoIniZd = 0.125;
+	static constexpr double delta_tCfl = 0.4;
+	static constexpr double rho_IniZg = 1.0;
+	static constexpr double rho_IniZd = 0.125;
 	static constexpr double pIniZg = 1.0;
 	static constexpr double pIniZd = 0.1;
 	double t_n;
 	double t_nplus1;
 	double t_n0;
-	double deltat;
+	double delta_t;
 	std::vector<RealArray1D<2>> X_n;
 	std::vector<RealArray1D<2>> X_nplus1;
 	std::vector<RealArray1D<2>> X_n0;
@@ -146,7 +156,7 @@ private:
 	std::vector<double> E_n;
 	std::vector<double> E_nplus1;
 	std::vector<double> V;
-	std::vector<double> deltatj;
+	std::vector<double> delta_tj;
 	std::vector<RealArray1D<2>> uj_n;
 	std::vector<RealArray1D<2>> uj_nplus1;
 	std::vector<std::vector<double>> l;
@@ -154,11 +164,6 @@ private:
 	std::vector<std::vector<RealArray1D<2>>> C;
 	std::vector<std::vector<RealArray1D<2>>> F;
 	std::vector<std::vector<RealArray2D<2,2>>> Ajr;
-
-	// Timers
-	Timer globalTimer;
-	Timer cpuTimer;
-	Timer ioTimer;
 };
 
 #endif

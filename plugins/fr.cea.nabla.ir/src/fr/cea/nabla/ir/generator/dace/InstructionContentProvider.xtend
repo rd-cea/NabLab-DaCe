@@ -33,6 +33,8 @@ import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.IrTypeExtensions.*
 import static extension fr.cea.nabla.ir.generator.dace.ExpressionContentProvider.*
 import static extension fr.cea.nabla.ir.generator.dace.ItemIndexAndIdValueContentProvider.*
+import fr.cea.nabla.ir.ir.BaseTypeConstant
+import fr.cea.nabla.ir.ir.BaseType
 
 class InstructionContentProvider 
 {
@@ -44,6 +46,11 @@ class InstructionContentProvider
 			«ENDIF»
 		«ELSE»
 			«variable.name» = «variable.defaultValue.content»
+			«IF variable.defaultValue instanceof BaseTypeConstant
+			 && (variable.defaultValue as BaseTypeConstant).type instanceof BaseType
+			 && !((variable.defaultValue as BaseTypeConstant).type as BaseType).sizes.empty»
+				«variable.name».fill(«(variable.defaultValue as BaseTypeConstant).value.content»)
+			«ENDIF»
 		«ENDIF»
 	'''
 
@@ -84,7 +91,11 @@ class InstructionContentProvider
 		«ELSE»
 			startIndex = 0
 		«ENDIF»
-		for «iterationBlock.indexName» in range(startIndex, «iterationBlock.nbElems»):
+		«IF multithreadable»
+			for «iterationBlock.indexName» in dace.map[startIndex:«iterationBlock.nbElems»]:
+		«ELSE»
+			for «iterationBlock.indexName» in range(startIndex, «iterationBlock.nbElems»):
+		«ENDIF»
 			«body.innerContent»
 	'''
 

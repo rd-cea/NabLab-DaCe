@@ -20,11 +20,10 @@ import fr.cea.nabla.nablagen.LevelDB
 import fr.cea.nabla.nablagen.TargetType
 import fr.cea.nabla.nablagen.TargetVar
 import java.util.ArrayList
+import java.util.Optional
 
 class IrCodeGeneratorFactory
 {
-	@Inject BackendFactory backendFactory
-
 	def IrCodeGenerator create(String wsPath, TargetType targetType)
 	{
 		create(wsPath, targetType, #[], null, null, null)
@@ -33,36 +32,15 @@ class IrCodeGeneratorFactory
 	def IrCodeGenerator create(String wsPath, TargetType targetType, Iterable<TargetVar> targetVars, LevelDB levelDB, String iterationMaxVarName, String timeMaxVarName)
 	{
 		val hasLevelDB = (levelDB !== null)
+		val envVars = new ArrayList<Pair<String, String>>
+		val debug = Optional.ofNullable(targetVars.findFirst[x | x.key.equals("DEBUG")]).map[x | Boolean.parseBoolean(x.value)].orElse(false)
+		targetVars.filter[x | !x.key.equals("DEBUG")].forEach[x | envVars += x.key -> x.value]
 		switch targetType
 		{
-			case JAVA: new JavaGenerator(hasLevelDB)
-			case DACE:
-			{
-				val envVars = new ArrayList<Pair<String, String>>
-				targetVars.forEach[x | envVars += x.key -> x.value]
-				new DaceGenerator(wsPath, hasLevelDB, envVars)
-			}
-			case PYTHON:
-			{
-				val envVars = new ArrayList<Pair<String, String>>
-				targetVars.forEach[x | envVars += x.key -> x.value]
-				new PythonGenerator(wsPath, hasLevelDB, envVars)
-			}
-			case ARCANE:
-			{
-				val cmakeVars = new ArrayList<Pair<String, String>>
-				targetVars.forEach[x | cmakeVars += x.key -> x.value]
-				new ArcaneGenerator(wsPath, cmakeVars)
-			}
+			case DACE: new DaceGenerator(wsPath, hasLevelDB, envVars)
 			default:
 			{
-				val backend = backendFactory.getCppBackend(targetType)
-				backend.traceContentProvider.maxIterationsVarName = iterationMaxVarName
-				backend.traceContentProvider.stopTimeVarName = timeMaxVarName
-				val cmakeVars = new ArrayList<Pair<String, String>>
-				targetVars.forEach[x | cmakeVars += x.key -> x.value]
-				if (hasLevelDB) levelDB.variables.forEach[x | cmakeVars += x.key -> x.value]
-				new CppGenerator(backend, wsPath, hasLevelDB, cmakeVars)
+				throw new RuntimeException("Unknown target type in IrCodeGeneratorFactory")
 			}
 		}
 	}

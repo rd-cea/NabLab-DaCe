@@ -32,9 +32,31 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Setup Node SDK
+        uses: actions/setup-node@v1.4.4
+        with:
+          node-version: 16
+          registry-url: https://npm.pkg.github.com/
+          
+      - name: Cache Node.js modules
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-node-
+            ${{ runner.OS }}-
+
+      - name: Install VSCE globally # vsce allows to package the vsce extension as a .vsix file
+        run: npm i vsce -g
+
       - name: Checkout NabLab code
         uses: actions/checkout@v2
       
+      # Added in May 2022 for security reasons (github update in Avril 2022)
+      - name: GH actions checkout post
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       # Set environment variable for tests execution
       - name: Set environment variable
         run: echo "CI=true" >> $GITHUB_ENV
@@ -42,13 +64,18 @@ jobs:
       # Runs the maven build (build + tests)
       - name: Run maven build
         if: startsWith(github.ref, 'refs/tags/v') != true
-        run: mvn clean;mvn verify -U
-      
-      # Runs the maven build (build + tests + updatesite + products)
+        run: mvn clean;mvn verify -U --settings .github/workflows/settings.xml
+        env:
+          USERNAME: ${{ github.actor }}
+          PASSWORD: ${{ github.token }}
+
+      # Runs the maven build (build + tests + updatesite + products + vscode extension)
       - name: Run maven build and updatesite profiles
         if: startsWith(github.ref, 'refs/tags/v')
-        run: mvn clean -P build,updatesite;mvn -B -U verify -P build,updatesite
+        run: mvn clean -P build,updatesite,vscode;mvn -B -U verify -P build,updatesite,vscode
         env:
+          USERNAME: ${{ github.actor }}
+          PASSWORD: ${{ github.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       # Tar tmp tests directory in case of error
@@ -58,7 +85,7 @@ jobs:
         run: cd /tmp && tar -c -v --exclude="*/output" -f nablabtestdir.tar nablabtest-*
         env:
           USERNAME: ${{ github.actor }}
-          PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          PASSWORD: ${{ github.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
       # Upload nablabtestdir.tar artifact
@@ -71,33 +98,48 @@ jobs:
           retention-days: 1
         env:
           USERNAME: ${{ github.actor }}
-          PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          PASSWORD: ${{ github.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Deploy maven artifacts to github
       - name: Deploy maven artifact to github (fr.cea.nabla)
         if: startsWith(github.ref, 'refs/tags/v')
-        run: mvn -B deploy:deploy-file --settings .github/workflows/settings.xml -Dfile=plugins/fr.cea.nabla/target/fr.cea.nabla-0.4.5-SNAPSHOT.jar -Dversion=0.4.5 -Durl=https://maven.pkg.github.com/cea-hpc/NabLab -DrepositoryId=github  -DgroupId=fr.cea.nabla -DartifactId=fr.cea.nabla
+        run: mvn -B deploy:deploy-file --settings .github/workflows/settings.xml -Dfile=plugins/fr.cea.nabla/target/fr.cea.nabla-0.6.0-SNAPSHOT.jar -Dversion=0.6.0 -Durl=https://maven.pkg.github.com/cea-hpc/NabLab -DrepositoryId=github  -DgroupId=fr.cea.nabla -DartifactId=fr.cea.nabla
         env:
           USERNAME: ${{ github.actor }}
-          PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          PASSWORD: ${{ github.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy maven artifact to github (fr.cea.nabla.ir)
         if: startsWith(github.ref, 'refs/tags/v')
-        run: mvn -B deploy:deploy-file --settings .github/workflows/settings.xml -Dfile=plugins/fr.cea.nabla.ir/target/fr.cea.nabla.ir-0.4.5-SNAPSHOT.jar -Dversion=0.4.5 -Durl=https://maven.pkg.github.com/cea-hpc/NabLab -DrepositoryId=github  -DgroupId=fr.cea.nabla -DartifactId=fr.cea.nabla.ir
+        run: mvn -B deploy:deploy-file --settings .github/workflows/settings.xml -Dfile=plugins/fr.cea.nabla.ir/target/fr.cea.nabla.ir-0.6.0-SNAPSHOT.jar -Dversion=0.6.0 -Durl=https://maven.pkg.github.com/cea-hpc/NabLab -DrepositoryId=github  -DgroupId=fr.cea.nabla -DartifactId=fr.cea.nabla.ir
         env:
           USERNAME: ${{ github.actor }}
-          PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          PASSWORD: ${{ github.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy maven artifact to github (fr.cea.nabla.javalib)
         if: startsWith(github.ref, 'refs/tags/v')
-        run: mvn -B deploy:deploy-file --settings .github/workflows/settings.xml -Dfile=plugins/fr.cea.nabla.javalib/target/fr.cea.nabla.javalib-0.4.5-SNAPSHOT.jar -Dversion=0.4.5 -Durl=https://maven.pkg.github.com/cea-hpc/NabLab -DrepositoryId=github  -DgroupId=fr.cea.nabla -DartifactId=fr.cea.nabla.javalib
+        run: mvn -B deploy:deploy-file --settings .github/workflows/settings.xml -Dfile=plugins/fr.cea.nabla.javalib/target/fr.cea.nabla.javalib-0.6.0-SNAPSHOT.jar -Dversion=0.6.0 -Durl=https://maven.pkg.github.com/cea-hpc/NabLab -DrepositoryId=github  -DgroupId=fr.cea.nabla -DartifactId=fr.cea.nabla.javalib
         env:
           USERNAME: ${{ github.actor }}
-          PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          PASSWORD: ${{ github.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Install/update vscode extension dependencies
+      - name: Install/update vscode extension dependencies # https://docs.npmjs.com/cli/v8/commands/npm-ci
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ github.token }}" >> .npmrc
+          echo "CI=true" >> $GITHUB_ENV
+          npm ci
+        working-directory: plugins/fr.cea.nabla.vscode.extension
+
+      # Package vscode extension
+      - name: Package the vscode extension
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: vsce package --no-yarn
+        working-directory: plugins/fr.cea.nabla.vscode.extension
 
       # Create a Github Release
       - name: Release
@@ -107,7 +149,10 @@ jobs:
           files: |
             ./releng/fr.cea.nabla.updatesite/target/fr.cea.nabla.updatesite-*.zip
             ./releng/fr.cea.nabla.updatesite/target/products/*.zip
+            ./plugins/fr.cea.nabla.vscode.extension/*.vsix
           draft: true
         env:
+          USERNAME: ${{ github.actor }}
+          PASSWORD: ${{ github.token }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         

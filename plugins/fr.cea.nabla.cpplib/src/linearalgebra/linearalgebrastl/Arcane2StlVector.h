@@ -16,6 +16,11 @@
 
 using namespace Arcane;
 
+/**
+ * This class allows to keep the Arcane variable type closed to
+ * the Vector type. The Vector type is used to call the solver.
+ * The Arcane type is used to keep Arcane services like VTK output.
+ */
 template<typename ItemType>
 class Arcane2StlVector
 {
@@ -41,15 +46,23 @@ class Arcane2StlVector
 	  return *this;
   }
 
-  operator Vector() const { return m_stl_vector; }
+  operator Vector&() { return m_stl_vector; }
+  operator const Vector&() const { return m_stl_vector; }
   const void resize(const size_t size) { m_stl_vector.resize(size); }
   const size_t getSize() const { return m_stl_vector.getSize(); }
 
-  double getValue(const ItemEnumerator i) const { return m_arcane_vector[i]; }
-  void setValue(const ItemEnumerator i, double value)
+  double getValue(const ItemEnumeratorT<ItemType> i) const { return m_arcane_vector[i]; }
+  void setValue(const ItemEnumeratorT<ItemType> i, double value)
   {
 	  m_arcane_vector[i] = value;
 	  m_stl_vector.setValue(i.index(), value);
+  }
+
+  double getValue(const ItemLocalIdT<ItemType> i) const { return m_arcane_vector[i]; }
+  void setValue(const ItemLocalIdT<ItemType> i, double value)
+  {
+	  m_arcane_vector[i] = value;
+	  m_stl_vector.setValue(i.localId(), value);
   }
 
 //  double getValue(const size_t i) const { return m_stl_vector.getValue(i); }

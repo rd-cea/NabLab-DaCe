@@ -58,6 +58,7 @@ template<size_t x0>
 RealArray1D<x0> operatorAdd(RealArray1D<x0> a, RealArray1D<x0> b)
 {
 	RealArray1D<x0> result;
+	#pragma omp parallel for
 	for (size_t ix0=0; ix0<x0; ix0++)
 	{
 		result[ix0] = a[ix0] + b[ix0];
@@ -69,6 +70,7 @@ template<size_t x0>
 RealArray1D<x0> operatorMult(double a, RealArray1D<x0> b)
 {
 	RealArray1D<x0> result;
+	#pragma omp parallel for
 	for (size_t ix0=0; ix0<x0; ix0++)
 	{
 		result[ix0] = a * b[ix0];
@@ -80,6 +82,7 @@ template<size_t x0>
 RealArray1D<x0> operatorSub(RealArray1D<x0> a, RealArray1D<x0> b)
 {
 	RealArray1D<x0> result;
+	#pragma omp parallel for
 	for (size_t ix0=0; ix0<x0; ix0++)
 	{
 		result[ix0] = a[ix0] - b[ix0];
@@ -138,7 +141,7 @@ ExplicitHeatEquation::jsonInit(const char* jsonContent)
 	const rapidjson::Value& valueof_maxIterations = options["maxIterations"];
 	assert(valueof_maxIterations.IsInt());
 	maxIterations = valueof_maxIterations.GetInt();
-	deltat = 0.001;
+	delta_t = 0.001;
 
 	// Copy node coordinates
 	const auto& gNodes = mesh.getGeometry()->getNodes();
@@ -179,12 +182,12 @@ void ExplicitHeatEquation::computeFaceLength() noexcept
 
 /**
  * Job computeTn called @1.0 in executeTimeLoopN method.
- * In variables: deltat, t_n
+ * In variables: delta_t, t_n
  * Out variables: t_nplus1
  */
 void ExplicitHeatEquation::computeTn() noexcept
 {
-	t_nplus1 = t_n + deltat;
+	t_nplus1 = t_n + delta_t;
 }
 
 /**
@@ -294,7 +297,7 @@ void ExplicitHeatEquation::updateU() noexcept
 /**
  * Job computeDeltaTn called @2.0 in simulate method.
  * In variables: D, V
- * Out variables: deltat
+ * Out variables: delta_t
  */
 void ExplicitHeatEquation::computeDeltaTn() noexcept
 {
@@ -304,7 +307,7 @@ void ExplicitHeatEquation::computeDeltaTn() noexcept
 	{
 		reduction0 = explicitheatequationfreefuncs::minR0(reduction0, V[cCells] / D[cCells]);
 	}
-	deltat = reduction0 * 0.24;
+	delta_t = reduction0 * 0.24;
 }
 
 /**
@@ -355,9 +358,13 @@ void ExplicitHeatEquation::initU() noexcept
 	for (size_t cCells=0; cCells<nbCells; cCells++)
 	{
 		if (explicitheatequationfreefuncs::norm(explicitheatequationfreefuncs::operatorSub(Xc[cCells], vectOne)) < 0.5) 
+		{
 			u_n[cCells] = u0;
+		}
 		else
+		{
 			u_n[cCells] = 0.0;
+		}
 	}
 }
 
@@ -373,7 +380,7 @@ void ExplicitHeatEquation::setUpTimeLoopN() noexcept
 
 /**
  * Job computeAlphaCoeff called @3.0 in simulate method.
- * In variables: V, Xc, deltat, faceConductivity, faceLength
+ * In variables: V, Xc, delta_t, faceConductivity, faceLength
  * Out variables: alpha
  */
 void ExplicitHeatEquation::computeAlphaCoeff() noexcept
@@ -382,7 +389,7 @@ void ExplicitHeatEquation::computeAlphaCoeff() noexcept
 	for (size_t cCells=0; cCells<nbCells; cCells++)
 	{
 		const Id cId(cCells);
-		double alphaDiag(0.0);
+		double alpha_Diag(0.0);
 		{
 			const auto neighbourCellsC(mesh.getNeighbourCells(cId));
 			const size_t nbNeighbourCellsC(neighbourCellsC.size());
@@ -392,12 +399,12 @@ void ExplicitHeatEquation::computeAlphaCoeff() noexcept
 				const size_t dCells(dId);
 				const Id fId(mesh.getCommonFace(cId, dId));
 				const size_t fFaces(fId);
-				const double alphaExtraDiag(deltat / V[cCells] * (faceLength[fFaces] * faceConductivity[fFaces]) / explicitheatequationfreefuncs::norm(explicitheatequationfreefuncs::operatorSub(Xc[cCells], Xc[dCells])));
-				alpha[cCells][dCells] = alphaExtraDiag;
-				alphaDiag = alphaDiag + alphaExtraDiag;
+				const double alpha_ExtraDiag(delta_t / V[cCells] * (faceLength[fFaces] * faceConductivity[fFaces]) / explicitheatequationfreefuncs::norm(explicitheatequationfreefuncs::operatorSub(Xc[cCells], Xc[dCells])));
+				alpha[cCells][dCells] = alpha_ExtraDiag;
+				alpha_Diag = alpha_Diag + alpha_ExtraDiag;
 			}
 		}
-		alpha[cCells][cCells] = 1 - alphaDiag;
+		alpha[cCells][cCells] = 1 - alpha_Diag;
 	}
 }
 
@@ -447,7 +454,7 @@ void ExplicitHeatEquation::executeTimeLoopN() noexcept
 		// Progress
 		std::cout << progress_bar(n, maxIterations, t_n, stopTime, 25);
 		std::cout << __BOLD__ << __CYAN__ << Timer::print(
-			eta(n, maxIterations, t_n, stopTime, deltat, globalTimer), true)
+			eta(n, maxIterations, t_n, stopTime, delta_t, globalTimer), true)
 			<< __RESET__ << "\r";
 		std::cout.flush();
 	

@@ -30,7 +30,7 @@ public final class ImplicitHeatEquation
 	int maxIterations;
 	static final double u0 = 1.0;
 	static final double[] vectOne = new double[] {1.0, 1.0};
-	double deltat;
+	double delta_t;
 	double t_n;
 	double t_nplus1;
 	double t_n0;
@@ -57,25 +57,25 @@ public final class ImplicitHeatEquation
 	{
 		final Gson gson = new Gson();
 		final JsonObject options = gson.fromJson(jsonContent, JsonObject.class);
-		assert(options.has("outputPath"));
+		assert options.has("outputPath") : "No outputPath option";
 		final JsonElement valueof_outputPath = options.get("outputPath");
 		outputPath = valueof_outputPath.getAsJsonPrimitive().getAsString();
 		writer = new PvdFileWriter2D("ImplicitHeatEquation", outputPath);
-		assert(options.has("outputPeriod"));
+		assert options.has("outputPeriod") : "No outputPeriod option";
 		final JsonElement valueof_outputPeriod = options.get("outputPeriod");
 		assert(valueof_outputPeriod.isJsonPrimitive());
 		outputPeriod = valueof_outputPeriod.getAsJsonPrimitive().getAsInt();
 		lastDump = Integer.MIN_VALUE;
 		n = 0;
-		assert(options.has("stopTime"));
+		assert options.has("stopTime") : "No stopTime option";
 		final JsonElement valueof_stopTime = options.get("stopTime");
 		assert(valueof_stopTime.isJsonPrimitive());
 		stopTime = valueof_stopTime.getAsJsonPrimitive().getAsDouble();
-		assert(options.has("maxIterations"));
+		assert options.has("maxIterations") : "No maxIterations option";
 		final JsonElement valueof_maxIterations = options.get("maxIterations");
 		assert(valueof_maxIterations.isJsonPrimitive());
 		maxIterations = valueof_maxIterations.getAsJsonPrimitive().getAsInt();
-		deltat = 0.001;
+		delta_t = 0.001;
 		X = new double[nbNodes][2];
 		Xc = new double[nbCells][2];
 		u_n = new linearalgebrajava.Vector("u_n", nbCells);
@@ -106,7 +106,7 @@ public final class ImplicitHeatEquation
 	 */
 	protected void computeFaceLength()
 	{
-		IntStream.range(0, nbFaces).parallel().forEach(fFaces -> 
+		IntStream.range(0, nbFaces).parallel().forEach(fFaces ->
 		{
 			final int fId = fFaces;
 			double reduction0 = 0.0;
@@ -128,12 +128,12 @@ public final class ImplicitHeatEquation
 
 	/**
 	 * Job computeTn called @1.0 in executeTimeLoopN method.
-	 * In variables: deltat, t_n
+	 * In variables: delta_t, t_n
 	 * Out variables: t_nplus1
 	 */
 	protected void computeTn()
 	{
-		t_nplus1 = t_n + deltat;
+		t_nplus1 = t_n + delta_t;
 	}
 
 	/**
@@ -143,7 +143,7 @@ public final class ImplicitHeatEquation
 	 */
 	protected void computeV()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			final int jId = jCells;
 			double reduction0 = 0.0;
@@ -170,7 +170,7 @@ public final class ImplicitHeatEquation
 	 */
 	protected void initD()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			D[cCells] = 1.0;
 		});
@@ -193,7 +193,7 @@ public final class ImplicitHeatEquation
 	 */
 	protected void initXc()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			final int cId = cCells;
 			double[] reduction0 = new double[] {0.0, 0.0};
@@ -224,7 +224,7 @@ public final class ImplicitHeatEquation
 	/**
 	 * Job computeDeltaTn called @2.0 in simulate method.
 	 * In variables: D, V
-	 * Out variables: deltat
+	 * Out variables: delta_t
 	 */
 	protected void computeDeltaTn()
 	{
@@ -238,7 +238,7 @@ public final class ImplicitHeatEquation
 			},
 			(r1, r2) -> minR0(r1, r2)
 		);
-		deltat = reduction0 * 0.24;
+		delta_t = reduction0 * 0.24;
 	}
 
 	/**
@@ -248,7 +248,7 @@ public final class ImplicitHeatEquation
 	 */
 	protected void computeFaceConductivity()
 	{
-		IntStream.range(0, nbFaces).parallel().forEach(fFaces -> 
+		IntStream.range(0, nbFaces).parallel().forEach(fFaces ->
 		{
 			final int fId = fFaces;
 			double reduction0 = 1.0;
@@ -284,7 +284,7 @@ public final class ImplicitHeatEquation
 	 */
 	protected void initU()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			if (norm(operatorSub(Xc[cCells], vectOne)) < 0.5)
 				u_n.setValue(cCells, u0);
@@ -305,15 +305,15 @@ public final class ImplicitHeatEquation
 
 	/**
 	 * Job computeAlphaCoeff called @3.0 in simulate method.
-	 * In variables: V, Xc, deltat, faceConductivity, faceLength
+	 * In variables: V, Xc, delta_t, faceConductivity, faceLength
 	 * Out variables: alpha
 	 */
 	protected void computeAlphaCoeff()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(cCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(cCells ->
 		{
 			final int cId = cCells;
-			double alphaDiag = 0.0;
+			double alpha_Diag = 0.0;
 			{
 				final int[] neighbourCellsC = mesh.getNeighbourCells(cId);
 				final int nbNeighbourCellsC = neighbourCellsC.length;
@@ -323,12 +323,12 @@ public final class ImplicitHeatEquation
 					final int dCells = dId;
 					final int fId = mesh.getCommonFace(cId, dId);
 					final int fFaces = fId;
-					final double alphaExtraDiag = -deltat / V[cCells] * (faceLength[fFaces] * faceConductivity[fFaces]) / norm(operatorSub(Xc[cCells], Xc[dCells]));
-					alpha.setValue(cCells, dCells, alphaExtraDiag);
-					alphaDiag = alphaDiag + alphaExtraDiag;
+					final double alpha_ExtraDiag = -delta_t / V[cCells] * (faceLength[fFaces] * faceConductivity[fFaces]) / norm(operatorSub(Xc[cCells], Xc[dCells]));
+					alpha.setValue(cCells, dCells, alpha_ExtraDiag);
+					alpha_Diag = alpha_Diag + alpha_ExtraDiag;
 				}
 			}
-			alpha.setValue(cCells, cCells, 1 - alphaDiag);
+			alpha.setValue(cCells, cCells, 1 - alpha_Diag);
 		});
 	}
 
@@ -344,7 +344,7 @@ public final class ImplicitHeatEquation
 		do
 		{
 			n++;
-			System.out.printf("START ITERATION n: %5d - t: %5.5f - deltat: %5.5f\n", n, t_n, deltat);
+			System.out.printf("START ITERATION n: %5d - t: %5.5f - delta_t: %5.5f\n", n, t_n, delta_t);
 			if (n >= lastDump + outputPeriod)
 				dumpVariables(n);
 		
@@ -358,7 +358,7 @@ public final class ImplicitHeatEquation
 			u_n = u_nplus1;
 		} while (continueLoop);
 		
-		System.out.printf("FINAL TIME: %5.5f - deltat: %5.5f\n", t_n, deltat);
+		System.out.printf("FINAL TIME: %5.5f - delta_t: %5.5f\n", t_n, delta_t);
 		dumpVariables(n+1);
 	}
 
@@ -405,30 +405,30 @@ public final class ImplicitHeatEquation
 	private static double[] operatorAdd(double[] a, double[] b)
 	{
 		double[] result = new double[a.length];
-		for (int ix0=0; ix0<a.length; ix0++)
+		IntStream.range(0, a.length).parallel().forEach(ix0 ->
 		{
 			result[ix0] = a[ix0] + b[ix0];
-		}
+		});
 		return result;
 	}
 
 	private static double[] operatorMult(double a, double[] b)
 	{
 		double[] result = new double[b.length];
-		for (int ix0=0; ix0<b.length; ix0++)
+		IntStream.range(0, b.length).parallel().forEach(ix0 ->
 		{
 			result[ix0] = a * b[ix0];
-		}
+		});
 		return result;
 	}
 
 	private static double[] operatorSub(double[] a, double[] b)
 	{
 		double[] result = new double[a.length];
-		for (int ix0=0; ix0<a.length; ix0++)
+		IntStream.range(0, a.length).parallel().forEach(ix0 ->
 		{
 			result[ix0] = a[ix0] - b[ix0];
-		}
+		});
 		return result;
 	}
 
@@ -458,13 +458,13 @@ public final class ImplicitHeatEquation
 			final JsonObject o = gson.fromJson(new FileReader(dataFileName), JsonObject.class);
 
 			// Mesh instanciation
-			assert(o.has("mesh"));
+			assert o.has("mesh") : "No mesh option";
 			CartesianMesh2D mesh = new CartesianMesh2D();
 			mesh.jsonInit(o.get("mesh").toString());
 
 			// Module instanciation(s)
 			ImplicitHeatEquation implicitHeatEquation = new ImplicitHeatEquation(mesh);
-			assert(o.has("implicitHeatEquation"));
+			assert o.has("implicitHeatEquation") : "No implicitHeatEquation option";
 			implicitHeatEquation.jsonInit(o.get("implicitHeatEquation").toString());
 
 			// Start simulation

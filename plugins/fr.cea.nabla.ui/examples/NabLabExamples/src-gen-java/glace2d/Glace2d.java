@@ -33,15 +33,15 @@ public final class Glace2d
 	int maxIterations;
 	static final double gamma = 1.4;
 	static final double xInterface = 0.5;
-	static final double deltatCfl = 0.4;
-	static final double rhoIniZg = 1.0;
-	static final double rhoIniZd = 0.125;
+	static final double delta_tCfl = 0.4;
+	static final double rho_IniZg = 1.0;
+	static final double rho_IniZd = 0.125;
 	static final double pIniZg = 1.0;
 	static final double pIniZd = 0.1;
 	double t_n;
 	double t_nplus1;
 	double t_n0;
-	double deltat;
+	double delta_t;
 	double[][] X_n;
 	double[][] X_nplus1;
 	double[][] X_n0;
@@ -58,7 +58,7 @@ public final class Glace2d
 	double[] E_n;
 	double[] E_nplus1;
 	double[] V;
-	double[] deltatj;
+	double[] delta_tj;
 	double[][] uj_n;
 	double[][] uj_nplus1;
 	double[][] l;
@@ -84,21 +84,21 @@ public final class Glace2d
 	{
 		final Gson gson = new Gson();
 		final JsonObject options = gson.fromJson(jsonContent, JsonObject.class);
-		assert(options.has("outputPath"));
+		assert options.has("outputPath") : "No outputPath option";
 		final JsonElement valueof_outputPath = options.get("outputPath");
 		outputPath = valueof_outputPath.getAsJsonPrimitive().getAsString();
 		writer = new PvdFileWriter2D("Glace2d", outputPath);
-		assert(options.has("outputPeriod"));
+		assert options.has("outputPeriod") : "No outputPeriod option";
 		final JsonElement valueof_outputPeriod = options.get("outputPeriod");
 		assert(valueof_outputPeriod.isJsonPrimitive());
 		outputPeriod = valueof_outputPeriod.getAsJsonPrimitive().getAsInt();
 		lastDump = Integer.MIN_VALUE;
 		n = 0;
-		assert(options.has("stopTime"));
+		assert options.has("stopTime") : "No stopTime option";
 		final JsonElement valueof_stopTime = options.get("stopTime");
 		assert(valueof_stopTime.isJsonPrimitive());
 		stopTime = valueof_stopTime.getAsJsonPrimitive().getAsDouble();
-		assert(options.has("maxIterations"));
+		assert options.has("maxIterations") : "No maxIterations option";
 		final JsonElement valueof_maxIterations = options.get("maxIterations");
 		assert(valueof_maxIterations.isJsonPrimitive());
 		maxIterations = valueof_maxIterations.getAsJsonPrimitive().getAsInt();
@@ -118,7 +118,7 @@ public final class Glace2d
 		E_n = new double[nbCells];
 		E_nplus1 = new double[nbCells];
 		V = new double[nbCells];
-		deltatj = new double[nbCells];
+		delta_tj = new double[nbCells];
 		uj_n = new double[nbCells][2];
 		uj_nplus1 = new double[nbCells][2];
 		l = new double[nbCells][4];
@@ -143,7 +143,7 @@ public final class Glace2d
 	 */
 	protected void computeCjr()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			final int jId = jCells;
 			{
@@ -168,7 +168,7 @@ public final class Glace2d
 	 */
 	protected void computeInternalEnergy()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			e[jCells] = E_n[jCells] - 0.5 * dot(uj_n[jCells], uj_n[jCells]);
 		});
@@ -181,7 +181,7 @@ public final class Glace2d
 	 */
 	protected void iniCjrIc()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			final int jId = jCells;
 			{
@@ -216,7 +216,7 @@ public final class Glace2d
 	 */
 	protected void computeLjr()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			final int jId = jCells;
 			{
@@ -237,7 +237,7 @@ public final class Glace2d
 	 */
 	protected void computeV()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			final int jId = jCells;
 			double reduction0 = 0.0;
@@ -257,12 +257,12 @@ public final class Glace2d
 
 	/**
 	 * Job initialize called @2.0 in simulate method.
-	 * In variables: Cjr_ic, X_n0, gamma, pIniZd, pIniZg, rhoIniZd, rhoIniZg, xInterface
+	 * In variables: Cjr_ic, X_n0, gamma, pIniZd, pIniZg, rho_IniZd, rho_IniZg, xInterface
 	 * Out variables: E_n, m, p, rho, uj_n
 	 */
 	protected void initialize()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			final int jId = jCells;
 			double rho_ic;
@@ -281,12 +281,12 @@ public final class Glace2d
 			final double[] center = operatorMult(0.25, reduction0);
 			if (center[0] < xInterface)
 			{
-				rho_ic = rhoIniZg;
+				rho_ic = rho_IniZg;
 				p_ic = pIniZg;
 			}
 			else
 			{
-				rho_ic = rhoIniZd;
+				rho_ic = rho_IniZd;
 				p_ic = pIniZd;
 			}
 			double reduction1 = 0.0;
@@ -317,7 +317,7 @@ public final class Glace2d
 	protected void setUpTimeLoopN()
 	{
 		t_n = t_n0;
-		IntStream.range(0, nbNodes).parallel().forEach(i1Nodes -> 
+		IntStream.range(0, nbNodes).parallel().forEach(i1Nodes ->
 		{
 			for (int i1=0; i1<2; i1++)
 			{
@@ -333,7 +333,7 @@ public final class Glace2d
 	 */
 	protected void computeDensity()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			rho[jCells] = m[jCells] / V[jCells];
 		});
@@ -351,7 +351,7 @@ public final class Glace2d
 		do
 		{
 			n++;
-			System.out.printf("START ITERATION n: %5d - t: %5.5f - deltat: %5.5f\n", n, t_n, deltat);
+			System.out.printf("START ITERATION n: %5d - t: %5.5f - delta_t: %5.5f\n", n, t_n, delta_t);
 			if (n >= lastDump + outputPeriod)
 				dumpVariables(n);
 		
@@ -381,18 +381,18 @@ public final class Glace2d
 			continueLoop = (t_nplus1 < stopTime && n + 1 < maxIterations);
 		
 			t_n = t_nplus1;
-			IntStream.range(0, nbNodes).parallel().forEach(i1Nodes -> 
+			IntStream.range(0, nbNodes).parallel().forEach(i1Nodes ->
 			{
 				for (int i1=0; i1<2; i1++)
 				{
 					X_n[i1Nodes][i1] = X_nplus1[i1Nodes][i1];
 				}
 			});
-			IntStream.range(0, nbCells).parallel().forEach(i1Cells -> 
+			IntStream.range(0, nbCells).parallel().forEach(i1Cells ->
 			{
 				E_n[i1Cells] = E_nplus1[i1Cells];
 			});
-			IntStream.range(0, nbCells).parallel().forEach(i1Cells -> 
+			IntStream.range(0, nbCells).parallel().forEach(i1Cells ->
 			{
 				for (int i1=0; i1<2; i1++)
 				{
@@ -401,7 +401,7 @@ public final class Glace2d
 			});
 		} while (continueLoop);
 		
-		System.out.printf("FINAL TIME: %5.5f - deltat: %5.5f\n", t_n, deltat);
+		System.out.printf("FINAL TIME: %5.5f - delta_t: %5.5f\n", t_n, delta_t);
 		dumpVariables(n+1);
 	}
 
@@ -412,7 +412,7 @@ public final class Glace2d
 	 */
 	protected void computeEOSp()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			p[jCells] = (gamma - 1.0) * rho[jCells] * e[jCells];
 		});
@@ -425,7 +425,7 @@ public final class Glace2d
 	 */
 	protected void computeEOSc()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			c[jCells] = Math.sqrt(gamma * p[jCells] / rho[jCells]);
 		});
@@ -438,7 +438,7 @@ public final class Glace2d
 	 */
 	protected void computeAjr()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			final int jId = jCells;
 			{
@@ -455,11 +455,11 @@ public final class Glace2d
 	/**
 	 * Job computedeltatj called @6.0 in executeTimeLoopN method.
 	 * In variables: V, c, l
-	 * Out variables: deltatj
+	 * Out variables: delta_tj
 	 */
 	protected void computedeltatj()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			final int jId = jCells;
 			double reduction0 = 0.0;
@@ -471,7 +471,7 @@ public final class Glace2d
 					reduction0 = sumR0(reduction0, l[jCells][rNodesOfCellJ]);
 				}
 			}
-			deltatj[jCells] = 2.0 * V[jCells] / (c[jCells] * reduction0);
+			delta_tj[jCells] = 2.0 * V[jCells] / (c[jCells] * reduction0);
 		});
 	}
 
@@ -482,7 +482,7 @@ public final class Glace2d
 	 */
 	protected void computeAr()
 	{
-		IntStream.range(0, nbNodes).parallel().forEach(rNodes -> 
+		IntStream.range(0, nbNodes).parallel().forEach(rNodes ->
 		{
 			final int rId = rNodes;
 			double[][] reduction0 = new double[][] {{0.0, 0.0}, {0.0, 0.0}};
@@ -514,7 +514,7 @@ public final class Glace2d
 	 */
 	protected void computeBr()
 	{
-		IntStream.range(0, nbNodes).parallel().forEach(rNodes -> 
+		IntStream.range(0, nbNodes).parallel().forEach(rNodes ->
 		{
 			final int rId = rNodes;
 			double[] reduction0 = new double[] {0.0, 0.0};
@@ -538,8 +538,8 @@ public final class Glace2d
 
 	/**
 	 * Job computeDt called @7.0 in executeTimeLoopN method.
-	 * In variables: deltatCfl, deltatj, stopTime, t_n
-	 * Out variables: deltat
+	 * In variables: delta_tCfl, delta_tj, stopTime, t_n
+	 * Out variables: delta_t
 	 */
 	protected void computeDt()
 	{
@@ -549,11 +549,11 @@ public final class Glace2d
 			Double.MAX_VALUE,
 			(accu, jCells) ->
 			{
-				return minR0(accu, deltatj[jCells]);
+				return minR0(accu, delta_tj[jCells]);
 			},
 			(r1, r2) -> minR0(r1, r2)
 		);
-		deltat = Math.min((deltatCfl * reduction0), (stopTime - t_n));
+		delta_t = Math.min((delta_tCfl * reduction0), (stopTime - t_n));
 	}
 
 	/**
@@ -566,7 +566,7 @@ public final class Glace2d
 		final double[][] I = new double[][] {new double[] {1.0, 0.0}, new double[] {0.0, 1.0}};
 		{
 			final int[] topNodes = mesh.getGroup("TopNodes");
-			IntStream.range(0, nbTopNodes).parallel().forEach(rTopNodes -> 
+			IntStream.range(0, nbTopNodes).parallel().forEach(rTopNodes ->
 			{
 				final int rId = topNodes[rTopNodes];
 				final int rNodes = rId;
@@ -579,7 +579,7 @@ public final class Glace2d
 		}
 		{
 			final int[] bottomNodes = mesh.getGroup("BottomNodes");
-			IntStream.range(0, nbBottomNodes).parallel().forEach(rBottomNodes -> 
+			IntStream.range(0, nbBottomNodes).parallel().forEach(rBottomNodes ->
 			{
 				final int rId = bottomNodes[rBottomNodes];
 				final int rNodes = rId;
@@ -592,7 +592,7 @@ public final class Glace2d
 		}
 		{
 			final int[] leftNodes = mesh.getGroup("LeftNodes");
-			IntStream.range(0, nbLeftNodes).parallel().forEach(rLeftNodes -> 
+			IntStream.range(0, nbLeftNodes).parallel().forEach(rLeftNodes ->
 			{
 				final int rId = leftNodes[rLeftNodes];
 				final int rNodes = rId;
@@ -608,7 +608,7 @@ public final class Glace2d
 		}
 		{
 			final int[] rightNodes = mesh.getGroup("RightNodes");
-			IntStream.range(0, nbRightNodes).parallel().forEach(rRightNodes -> 
+			IntStream.range(0, nbRightNodes).parallel().forEach(rRightNodes ->
 			{
 				final int rId = rightNodes[rRightNodes];
 				final int rNodes = rId;
@@ -633,7 +633,7 @@ public final class Glace2d
 	{
 		{
 			final int[] innerNodes = mesh.getGroup("InnerNodes");
-			IntStream.range(0, nbInnerNodes).parallel().forEach(rInnerNodes -> 
+			IntStream.range(0, nbInnerNodes).parallel().forEach(rInnerNodes ->
 			{
 				final int rId = innerNodes[rInnerNodes];
 				final int rNodes = rId;
@@ -654,7 +654,7 @@ public final class Glace2d
 	{
 		{
 			final int[] innerNodes = mesh.getGroup("InnerNodes");
-			IntStream.range(0, nbInnerNodes).parallel().forEach(rInnerNodes -> 
+			IntStream.range(0, nbInnerNodes).parallel().forEach(rInnerNodes ->
 			{
 				final int rId = innerNodes[rInnerNodes];
 				final int rNodes = rId;
@@ -671,12 +671,12 @@ public final class Glace2d
 
 	/**
 	 * Job computeTn called @8.0 in executeTimeLoopN method.
-	 * In variables: deltat, t_n
+	 * In variables: delta_t, t_n
 	 * Out variables: t_nplus1
 	 */
 	protected void computeTn()
 	{
-		t_nplus1 = t_n + deltat;
+		t_nplus1 = t_n + delta_t;
 	}
 
 	/**
@@ -686,7 +686,7 @@ public final class Glace2d
 	 */
 	protected void computeU()
 	{
-		IntStream.range(0, nbNodes).parallel().forEach(rNodes -> 
+		IntStream.range(0, nbNodes).parallel().forEach(rNodes ->
 		{
 			ur[rNodes] = matVectProduct(inverse(Mt[rNodes]), bt[rNodes]);
 		});
@@ -699,7 +699,7 @@ public final class Glace2d
 	 */
 	protected void computeFjr()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			final int jId = jCells;
 			{
@@ -717,25 +717,25 @@ public final class Glace2d
 
 	/**
 	 * Job computeXn called @10.0 in executeTimeLoopN method.
-	 * In variables: X_n, deltat, ur
+	 * In variables: X_n, delta_t, ur
 	 * Out variables: X_nplus1
 	 */
 	protected void computeXn()
 	{
-		IntStream.range(0, nbNodes).parallel().forEach(rNodes -> 
+		IntStream.range(0, nbNodes).parallel().forEach(rNodes ->
 		{
-			X_nplus1[rNodes] = operatorAdd(X_n[rNodes], operatorMult(deltat, ur[rNodes]));
+			X_nplus1[rNodes] = operatorAdd(X_n[rNodes], operatorMult(delta_t, ur[rNodes]));
 		});
 	}
 
 	/**
 	 * Job computeEn called @11.0 in executeTimeLoopN method.
-	 * In variables: E_n, F, deltat, m, ur
+	 * In variables: E_n, F, delta_t, m, ur
 	 * Out variables: E_nplus1
 	 */
 	protected void computeEn()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			final int jId = jCells;
 			double reduction0 = 0.0;
@@ -749,18 +749,18 @@ public final class Glace2d
 					reduction0 = sumR0(reduction0, dot(F[jCells][rNodesOfCellJ], ur[rNodes]));
 				}
 			}
-			E_nplus1[jCells] = E_n[jCells] - (deltat / m[jCells]) * reduction0;
+			E_nplus1[jCells] = E_n[jCells] - (delta_t / m[jCells]) * reduction0;
 		});
 	}
 
 	/**
 	 * Job computeUn called @11.0 in executeTimeLoopN method.
-	 * In variables: F, deltat, m, uj_n
+	 * In variables: F, delta_t, m, uj_n
 	 * Out variables: uj_nplus1
 	 */
 	protected void computeUn()
 	{
-		IntStream.range(0, nbCells).parallel().forEach(jCells -> 
+		IntStream.range(0, nbCells).parallel().forEach(jCells ->
 		{
 			final int jId = jCells;
 			double[] reduction0 = new double[] {0.0, 0.0};
@@ -772,7 +772,7 @@ public final class Glace2d
 					reduction0 = sumR1(reduction0, F[jCells][rNodesOfCellJ]);
 				}
 			}
-			uj_nplus1[jCells] = operatorSub(uj_n[jCells], operatorMult((deltat / m[jCells]), reduction0));
+			uj_nplus1[jCells] = operatorSub(uj_n[jCells], operatorMult((delta_t / m[jCells]), reduction0));
 		});
 	}
 
@@ -804,20 +804,20 @@ public final class Glace2d
 	private static double[][] tensProduct(double[] a, double[] b)
 	{
 		double[][] result = new double[a.length][a.length];
-		for (int ia=0; ia<a.length; ia++)
+		IntStream.range(0, a.length).parallel().forEach(ia ->
 		{
 			for (int ib=0; ib<a.length; ib++)
 			{
 				result[ia][ib] = a[ia] * b[ib];
 			}
-		}
+		});
 		return result;
 	}
 
 	private static double[] matVectProduct(double[][] a, double[] b)
 	{
 		double[] result = new double[a.length];
-		for (int ix=0; ix<a.length; ix++)
+		IntStream.range(0, a.length).parallel().forEach(ix ->
 		{
 			double[] tmp = new double[a[0].length];
 			for (int iy=0; iy<a[0].length; iy++)
@@ -825,7 +825,7 @@ public final class Glace2d
 				tmp[iy] = a[ix][iy];
 			}
 			result[ix] = dot(tmp, b);
-		}
+		});
 		return result;
 	}
 
@@ -868,95 +868,95 @@ public final class Glace2d
 	private static double[] operatorAdd(double[] a, double[] b)
 	{
 		double[] result = new double[a.length];
-		for (int ix0=0; ix0<a.length; ix0++)
+		IntStream.range(0, a.length).parallel().forEach(ix0 ->
 		{
 			result[ix0] = a[ix0] + b[ix0];
-		}
+		});
 		return result;
 	}
 
 	private static double[][] operatorAdd(double[][] a, double[][] b)
 	{
 		double[][] result = new double[a.length][a[0].length];
-		for (int ix0=0; ix0<a.length; ix0++)
+		IntStream.range(0, a.length).parallel().forEach(ix0 ->
 		{
 			for (int ix1=0; ix1<a[0].length; ix1++)
 			{
 				result[ix0][ix1] = a[ix0][ix1] + b[ix0][ix1];
 			}
-		}
+		});
 		return result;
 	}
 
 	private static double[] operatorMult(double a, double[] b)
 	{
 		double[] result = new double[b.length];
-		for (int ix0=0; ix0<b.length; ix0++)
+		IntStream.range(0, b.length).parallel().forEach(ix0 ->
 		{
 			result[ix0] = a * b[ix0];
-		}
+		});
 		return result;
 	}
 
 	private static double[] operatorSub(double[] a, double[] b)
 	{
 		double[] result = new double[a.length];
-		for (int ix0=0; ix0<a.length; ix0++)
+		IntStream.range(0, a.length).parallel().forEach(ix0 ->
 		{
 			result[ix0] = a[ix0] - b[ix0];
-		}
+		});
 		return result;
 	}
 
 	private static double[][] operatorMult(double a, double[][] b)
 	{
 		double[][] result = new double[b.length][b[0].length];
-		for (int ix0=0; ix0<b.length; ix0++)
+		IntStream.range(0, b.length).parallel().forEach(ix0 ->
 		{
 			for (int ix1=0; ix1<b[0].length; ix1++)
 			{
 				result[ix0][ix1] = a * b[ix0][ix1];
 			}
-		}
+		});
 		return result;
 	}
 
 	private static double[][] operatorSub(double[][] a, double[][] b)
 	{
 		double[][] result = new double[a.length][a[0].length];
-		for (int ix0=0; ix0<a.length; ix0++)
+		IntStream.range(0, a.length).parallel().forEach(ix0 ->
 		{
 			for (int ix1=0; ix1<a[0].length; ix1++)
 			{
 				result[ix0][ix1] = a[ix0][ix1] - b[ix0][ix1];
 			}
-		}
+		});
 		return result;
 	}
 
 	private static double[][] operatorMult(double[][] a, double[][] b)
 	{
 		double[][] result = new double[a.length][a[0].length];
-		for (int ix0=0; ix0<a.length; ix0++)
+		IntStream.range(0, a.length).parallel().forEach(ix0 ->
 		{
 			for (int ix1=0; ix1<a[0].length; ix1++)
 			{
 				result[ix0][ix1] = a[ix0][ix1] * b[ix0][ix1];
 			}
-		}
+		});
 		return result;
 	}
 
 	private static double[][] operatorMult(double[][] a, double b)
 	{
 		double[][] result = new double[a.length][a[0].length];
-		for (int ix0=0; ix0<a.length; ix0++)
+		IntStream.range(0, a.length).parallel().forEach(ix0 ->
 		{
 			for (int ix1=0; ix1<a[0].length; ix1++)
 			{
 				result[ix0][ix1] = a[ix0][ix1] * b;
 			}
-		}
+		});
 		return result;
 	}
 
@@ -980,13 +980,13 @@ public final class Glace2d
 			final JsonObject o = gson.fromJson(new FileReader(dataFileName), JsonObject.class);
 
 			// Mesh instanciation
-			assert(o.has("mesh"));
+			assert o.has("mesh") : "No mesh option";
 			CartesianMesh2D mesh = new CartesianMesh2D();
 			mesh.jsonInit(o.get("mesh").toString());
 
 			// Module instanciation(s)
 			Glace2d glace2d = new Glace2d(mesh);
-			assert(o.has("glace2d"));
+			assert o.has("glace2d") : "No glace2d option";
 			glace2d.jsonInit(o.get("glace2d").toString());
 
 			// Start simulation

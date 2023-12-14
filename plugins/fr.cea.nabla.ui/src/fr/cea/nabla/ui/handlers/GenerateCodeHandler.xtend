@@ -31,7 +31,7 @@ class GenerateCodeHandler extends AbstractGenerateHandler
 	@Inject Provider<CodeGenerator> codeGeneratorProvider
 
 	val traceFunction = [MessageType type, String msg | consoleFactory.printConsole(type, msg)]
-
+	
 	override generate(IFile nablagenFile, Shell shell)
 	{
 		new Thread

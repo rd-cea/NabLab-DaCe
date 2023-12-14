@@ -1,5 +1,5 @@
 """
- * Copyright (c) 2022 CEA
+ * Copyright (c) 2023 CEA
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
@@ -9,45 +9,11 @@
 """
 import numpy as np
 import dace
+import sys
 
 from meshgeometry import MeshGeometry
 
 class CartesianMesh2D:
-    # NODES
-    AllNodes = "AllNodes";
-    InnerNodes = "InnerNodes";
-    OuterNodes = "OuterNodes";
-    TopNodes = "TopNodes";
-    BottomNodes = "BottomNodes";
-    LeftNodes = "LeftNodes";
-    RightNodes = "RightNodes";
-    TopLeftNode = "TopLeftNode";
-    TopRightNode = "TopRightNode";
-    BottomLeftNode = "BottomLeftNode";
-    BottomRightNode = "BottomRightNode";
-
-    # CELLS
-    AllCells = "AllCells";
-    InnerCells = "InnerCells";
-    OuterCells = "OuterCells";
-    TopCells = "TopCells";
-    BottomCells = "BottomCells";
-    LeftCells = "LeftCells";
-    RightCells = "RightCells";
-
-    # FACES
-    AllFaces = "AllFaces";
-    InnerFaces = "InnerFaces";
-    OuterFaces = "OuterFaces";
-    InnerHorizontalFaces = "InnerHorizontalFaces";
-    InnerVerticalFaces = "InnerVerticalFaces";
-    TopFaces = "TopFaces";
-    BottomFaces = "BottomFaces";
-    LeftFaces = "LeftFaces";
-    RightFaces = "RightFaces";
-
-    _groups = {}
-
     def jsonInit(self, jsonContent):
         self.create(jsonContent["nbXQuads"], jsonContent["nbYQuads"], jsonContent["xSize"], jsonContent["ySize"])
     
@@ -67,19 +33,15 @@ class CartesianMesh2D:
     
     @property
     def nodes(self):
-        return self._groups[self.AllNodes]
+        return self.AllNodes
     @property
     def cells(self):
-        return self._groups[self.AllCells]
+        return self.AllCells
     @property
     def faces(self):
-        return self._groups[self.AllFaces]
-    
-    def getGroup(self, name):
-        if name not in self._groups:
-            raise Exception("Invalid item group: " + name)
-        return self._groups[name]
-    
+        return self.AllFaces
+
+    @dace.method
     def getNodesOfCell(self, cellId):
         return self._geometry.quads[cellId]
     def getNodesOfFace(self, faceId):
@@ -89,20 +51,29 @@ class CartesianMesh2D:
     def getSecondNodeOfFace(self, faceId):
         return self.getNodesOfFace(faceId)[1]
     
+    @dace.method
     def getCellsOfNode(self, nodeId):
         i, j = self._id2IndexNode(nodeId)
-        cellsOfNode = []
-        if i < self._nbYQuads and j < self._nbXQuads:
-            cellsOfNode.append(self._index2IdCell(i, j))
-        if i < self._nbYQuads and j > 0:
-            cellsOfNode.append(self._index2IdCell(i, j-1))
-        if i > 0 and j < self._nbXQuads:
-            cellsOfNode.append(self._index2IdCell(i-1, j))
-        if i > 0 and j > 0:
-            cellsOfNode.append(self._index2IdCell(i-1, j-1))
-        cellsOfNode.sort()
-        return np.array(cellsOfNode)
-    
+        cellsOfNode = dace.ndarray(shape=(4), dtype=np.int32) # At most four cells per node
+        cellsOfNode.fill((1 << 31) - 1)
+        c = dace.ndarray(shape=(2), dtype=np.int32)
+        c.fill(0)
+
+        if i[0] < self._nbYQuads and j[0] < self._nbXQuads:
+            cellsOfNode[c[0]] = self._index2IdCell(i[0], j[0])
+            c[0] = c[0] + 1
+        if i[0] < self._nbYQuads and j[0] > 0:
+            cellsOfNode[c[0]] = self._index2IdCell(i[0], j[0]-1)
+            c[0] = c[0] + 1
+        if i[0] > 0 and j[0] < self._nbXQuads:
+            cellsOfNode[c[0]] = self._index2IdCell(i[0]-1, j[0])
+            c[0] = c[0] + 1
+        if i[0] > 0 and j[0] > 0:
+            cellsOfNode[c[0]] = self._index2IdCell(i[0]-1, j[0]-1)
+            c[0] = c[0] + 1
+        np.ndarray.sort(cellsOfNode) # DaCe callback
+        return cellsOfNode
+
     def getCellsOfFace(self, faceId):
         i_f = faceId // ((2 * self._nbXQuads) + 1)
         k_f = faceId - (i_f * ((2 * self._nbXQuads) + 1))
@@ -126,32 +97,29 @@ class CartesianMesh2D:
         return np.array(cellsOfFace)
     
     def getNeighbourCells(self, cellId):
-        '''
-            Ne fonctionne pas en Python car x et y sont des entiers,
-            donc x[0] et y [0] ne fonctionnent pas.
-            MAIS on doit le laisser pour contourner un bug DaCe
-        '''
         x, y = self._id2IndexCell(cellId)
         neighbourCells = np.full((4,), -1)
-        cpt = 0
+        cpt = dace.ndarray(shape=(2), dtype=dace.int32)
+
         if x[0] >= 1:
-            neighbourCells[cpt] = self._index2IdCell(x-1, y)
-            cpt = cpt + 1
+            neighbourCells[cpt[0]] = self._index2IdCell(x-1, y)
+            cpt[0] = cpt[0] + 1
         if x[0] < self._nbYQuads - 1:
-            neighbourCells[cpt] = self._index2IdCell(x+1, y)
-            cpt = cpt + 1
+            neighbourCells[cpt[0]] = self._index2IdCell(x+1, y)
+            cpt[0] = cpt[0] + 1
         if y[0] >= 1:
-            neighbourCells[cpt] = self._index2IdCell(x, y-1)
-            cpt = cpt + 1
+            neighbourCells[cpt[0]] = self._index2IdCell(x, y-1)
+            cpt[0] = cpt[0] + 1
         if y[0] < self._nbXQuads-1:
-            neighbourCells[cpt] = self._index2IdCell(x, y+1)
-            cpt = cpt + 1 
+            neighbourCells[cpt[0]] = self._index2IdCell(x, y+1)
+            cpt[0] = cpt[0] + 1
         neighbourCells = np.sort(neighbourCells)
         return neighbourCells
     
     def getFacesOfCell(self, cellId):
         x, y = self._id2IndexCell(cellId)
-        facesOfCell = np.empty(4, dtype=np.int)
+        facesOfCell = dace.ndarray(4, dtype=dace.int32)
+        facesOfCell.fill(0)
         facesOfCell[0] = (2 * y[0] + x[0] * (2 * self._nbXQuads + 1))
         facesOfCell[1] = facesOfCell[0] + 1
         
@@ -168,7 +136,7 @@ class CartesianMesh2D:
     def getCommonFace(self, cell1, cell2):
         cell1Faces = self.getFacesOfCell(cell1);
         cell2Faces = self.getFacesOfCell(cell2);
-        commonFace = np.ndarray([1], dace.int64)
+        commonFace = np.ndarray([2], dace.int64)
         commonFace = np.intersect1d(cell1Faces, cell2Faces)
         if commonFace.size > 0:
             return commonFace[0]
@@ -278,27 +246,13 @@ class CartesianMesh2D:
     def dump(self):
         self._geometry.dump()
         print("MESH TOPOLOGY")
-        innerNodes = self._groups[CartesianMesh2D.InnerNodes]
-        print("Inner nodes ("+ str(len(innerNodes))+"):")
-        print(innerNodes)
-        topNodes = self._groups[CartesianMesh2D.TopNodes]
-        print("Top nodes ("+ str(len(topNodes))+"):")
-        print(topNodes)
-        bottomNodes = self._groups[CartesianMesh2D.BottomNodes]
-        print("Bottom nodes ("+ str(len(bottomNodes))+"):")
-        print(bottomNodes)
-        leftNodes = self._groups[CartesianMesh2D.LeftNodes]
-        print("Left nodes ("+ str(len(leftNodes))+"):")
-        print(leftNodes)
-        rightNodes = self._groups[CartesianMesh2D.RightNodes]
-        print("Right nodes ("+ str(len(rightNodes))+"):")
-        print(rightNodes)
-        outerFaces = self._groups[CartesianMesh2D.OuterFaces]
-        print("Outer faces ("+ str(len(outerFaces))+"):")
-        print(outerFaces)
-        innerFaces = self._groups[CartesianMesh2D.InnerFaces]
-        print("Inner faces ("+ str(len(innerFaces))+"):")
-        print(innerFaces)
+        innerNodes = self.InnerNodes
+        topNodes = self.TopNodes
+        bottomNodes = self.BottomNodes
+        leftNodes = self.LeftNodes
+        rightNodes = self.RightNodes
+        outerFaces = self.OuterFaces
+        innerFaces = self.InnerFaces
     
     def create(self, nbXQuads, nbYQuads, xSize, ySize):
         if (nbXQuads == -1 or nbYQuads == -1 or xSize == -1 or ySize == -1):
@@ -407,7 +361,7 @@ class CartesianMesh2D:
         
         self._geometry = MeshGeometry(nodes, edges, quads)
         
-        # faces partitionment
+        # faces partitioning
         outFaces = np.empty(2 * nbXQuads + 2 * nbYQuads, dtype=np.int32)
         inFaces = np.empty(len(edges) - len(outFaces), dtype=np.int32)
         inHFaces = np.empty(nbXQuads * (nbYQuads - 1), dtype=np.int32)
@@ -459,40 +413,48 @@ class CartesianMesh2D:
             else:
                 outFaces[outFaceId] = edgeId
                 outFaceId += 1
-        
+
         # NODES
-        self._groups[self.AllNodes] = np.array(range(self.nbNodes))
-        self._groups[self.InnerNodes] = innerNodes
-        self._groups[self.OuterNodes] = outerNodes
-        self._groups[self.TopNodes] = topNodes
-        self._groups[self.BottomNodes] = bottomNodes
-        self._groups[self.LeftNodes] = leftNodes
-        self._groups[self.RightNodes] = rightNodes
-        self._groups[self.TopLeftNode] = np.array([(nbXQuads + 1) * nbYQuads])
-        self._groups[self.TopRightNode] = np.array([(nbXQuads + 1) * (nbYQuads +1) - 1])
-        self._groups[self.BottomLeftNode] = np.array([0])
-        self._groups[self.BottomRightNode] = np.array([nbXQuads])
+        self.AllNodes = np.array(range(self.nbNodes))
+        self.InnerNodes = innerNodes
+        self.OuterNodes = outerNodes
+        self.TopNodes = topNodes
+        self.BottomNodes = bottomNodes
+        self.LeftNodes = leftNodes
+        self.RightNodes = rightNodes
+        self.TopLeftNode = np.array([(nbXQuads + 1) * nbYQuads])
+        self.TopRightNode = np.array([(nbXQuads + 1) * (nbYQuads +1) - 1])
+        self.BottomLeftNode = np.array([0])
+        self.BottomRightNode = np.array([nbXQuads])
 
         # CELLS
-        self._groups[self.AllCells] = np.array(range(self.nbCells))
-        self._groups[self.InnerCells] = innerCells
-        self._groups[self.OuterCells] = outerCells
-        self._groups[self.TopCells] = topCells
-        self._groups[self.BottomCells] = bottomCells
-        self._groups[self.LeftCells] = leftCells
-        self._groups[self.RightCells] = rightCells
+        self.AllCells = np.array(range(self.nbCells))
+        self.InnerCells = innerCells
+        self.OuterCells = outerCells
+        self.TopCells = topCells
+        self.BottomCells = bottomCells
+        self.LeftCells = leftCells
+        self.RightCells = rightCells
 
         # FACES
-        self._groups[self.AllFaces] = np.array(range(self.nbFaces))
-        self._groups[self.InnerFaces] = np.array(inFaces)
-        self._groups[self.OuterFaces] = np.array(outFaces)
-        self._groups[self.InnerHorizontalFaces] = np.array(inHFaces)
-        self._groups[self.InnerVerticalFaces] = np.array(inVFaces)
-        self._groups[self.TopFaces] = np.array(tFaces)
-        self._groups[self.BottomFaces] = np.array(bFaces)
-        self._groups[self.LeftFaces] = np.array(lFaces)
-        self._groups[self.RightFaces] = np.array(rFaces)
-    
+        self.AllFaces = np.array(range(self.nbFaces))
+        self.InnerFaces = np.array(inFaces)
+        self.OuterFaces = np.array(outFaces)
+        self.InnerHorizontalFaces = np.array(inHFaces)
+        self.InnerVerticalFaces = np.array(inVFaces)
+        self.TopFaces = np.array(tFaces)
+        self.BottomFaces = np.array(bFaces)
+        self.LeftFaces = np.array(lFaces)
+        self.RightFaces = np.array(rFaces)
+
+    @dace.method
+    def getTopNode(self, id):
+        return self.TopNodes[id]
+
+    @dace.method
+    def getTopNodes(self):
+        return self.TopNodes
+
     def _isInnerEdge(self, edge):
         i1, j1 = self._id2IndexNode(edge[0])
         i2, j2 = self._id2IndexNode(edge[1])

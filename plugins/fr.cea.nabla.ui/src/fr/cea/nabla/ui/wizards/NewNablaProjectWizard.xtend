@@ -144,22 +144,16 @@ class NewNablaProjectWizard extends Wizard implements INewWizard
 				val srcCppFolder = project.getFolder(srcCppFolderName)
 				srcCppFolder.create(false, true, monitor)
 
-				// Create all src-gen-cpp subfolders
-				for (cppFolderName : NablagenFileGenerator.CppGenFoldersByTarget.values)
-				{
-					val cppFolder = srcCppFolder.getFolder(cppFolderName)
-					cppFolder.create(false, true, monitor)
-				}
-
-				// Create src-gen-arcane folder
-				val srcArcaneFolderName = (newProjectPage.module ? "src-gen-arcane" : "src-arcane")
-				val srcArcaneFolder = project.getFolder(srcArcaneFolderName)
-				srcArcaneFolder.create(false, true, monitor)
 
 				// Create src-gen-python folder
 				val srcPythonFolderName = (newProjectPage.module ? "src-gen-python" : "src-python")
 				val srcPythonFolder = project.getFolder(srcPythonFolderName)
 				srcPythonFolder.create(false, true, monitor)
+				
+				// Create src-gen-dace folder
+				val srcDaceFolderName = (newProjectPage.module ? "src-gen-dace" : "src-dace")
+				val srcDaceFolder = project.getFolder(srcDaceFolderName)
+				srcDaceFolder.create(false, true, monitor)
 
 				// Create nabla and nablagen models
 				val nablaFile = modulesFolder.getFile(mOeName + ".n")
@@ -249,12 +243,12 @@ class NewNablaProjectWizard extends Wizard implements INewWizard
 
 		with CartesianMesh2D.*;
 
-		let ℕ maxIter = 200;
-		let ℝ maxTime = 1.0;
+		let int maxIter = 200;
+		let real maxTime = 1.0;
 
-		ℝ t, δt;
-		ℝ[2] X{nodes};
-		ℝ e{nodes};
+		real t, delta_t;
+		real[2] X{nodes};
+		real e{nodes};
 
 		iterate n while (n+1 < maxIter && t^{n+1} < maxTime);
 	'''
@@ -263,7 +257,7 @@ class NewNablaProjectWizard extends Wizard implements INewWizard
 	'''
 		extension «extensionName»;
 
-		def myMatVectProduct: x, y  | ℝ[x,y] × ℝ[y] → ℝ[x];
+		def myMatVectProduct: x, y  | real[x,y] , real[y] : real[x];
 	'''
 
 	private def getManifestContent()

@@ -15,12 +15,12 @@
 	<parent>
 		<groupId>fr.cea.nabla</groupId>
 		<artifactId>parent</artifactId>
-		<version>0.6.0-SNAPSHOT</version>
+		<version>0.1.0-SNAPSHOT</version>
 		<relativePath>../../</relativePath>
 	</parent>
 	<artifactId>fr.cea.nabla.siriusweb.application</artifactId>
 	<name>fr.cea.nabla.siriusweb.application</name>
-	<version>0.6.0-SNAPSHOT</version>
+	<version>0.1.0-SNAPSHOT</version>
 	<description>CEA NabLab Sirius Web Application</description>
 	<packaging>jar</packaging>
 	
@@ -45,12 +45,16 @@
 
 	<repositories>
 		<repository>
+			<id>github-sirius-web</id>
+			<url>https://maven.pkg.github.com/eclipse-sirius/sirius-web</url>
+    </repository>
+    <repository>
+      <id>github-sirius-emfjson</id>
+      <url>https://maven.pkg.github.com/eclipse-sirius/sirius-emf-json</url>
+    </repository>
+		<repository>
 			<id>Central</id>
 			<url>https://repo.maven.apache.org/maven2</url>
-		</repository>
-		<repository>
-			<id>github-sirius-components</id>
-			<url>https://maven.pkg.github.com/eclipse-sirius/sirius-components</url>
 		</repository>
 	</repositories>
 

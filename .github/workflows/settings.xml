@@ -27,9 +27,13 @@
           <snapshots><enabled>true</enabled></snapshots>
         </repository>
         <repository>
-          <id>github-sirius-components</id>
+          <id>github-sirius-web</id>
           <name>Github Sirius Components Apache Maven Packages</name>
-          <url>https://maven.pkg.github.com/eclipse-sirius/sirius-components</url>
+          <url>https://maven.pkg.github.com/eclipse-sirius/sirius-web</url>
+        </repository>
+        <repository>
+          <id>github-sirius-emfjson</id>
+          <url>https://maven.pkg.github.com/eclipse-sirius/sirius-emf-json</url>
         </repository>
       </repositories>
     </profile>
@@ -42,7 +46,12 @@
       <password>${env.PASSWORD}</password>
     </server>
     <server>
-      <id>github-sirius-components</id>
+      <id>github-sirius-web</id>
+      <username>${env.USERNAME}</username>
+      <password>${env.PASSWORD}</password>
+    </server>
+    <server>
+      <id>github-sirius-emfjson</id>
       <username>${env.USERNAME}</username>
       <password>${env.PASSWORD}</password>
     </server>

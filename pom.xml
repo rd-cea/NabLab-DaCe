@@ -14,7 +14,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>fr.cea.nabla</groupId>
     <artifactId>parent</artifactId>
-    <version>0.6.0-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>NabLab build</name>
 
@@ -31,7 +31,7 @@
         <repository>
             <id>github</id>
             <name>Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/cea-hpc/NabLab</url>
+            <url>https://maven.pkg.github.com/rd-cea/NabLab-DaCe</url>
         </repository>
     </distributionManagement>
 
@@ -142,7 +142,7 @@
                             <artifact>
                                 <groupId>fr.cea.nabla</groupId>
                                 <artifactId>fr.cea.nabla.targetplatform</artifactId>
-                                <version>0.6.0-SNAPSHOT</version>
+                                <version>0.1.0-SNAPSHOT</version>
                                 <classifier>nablab</classifier>
                             </artifact>
                         </target>

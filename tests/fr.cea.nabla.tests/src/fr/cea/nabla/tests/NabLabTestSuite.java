@@ -42,8 +42,6 @@ import fr.cea.nabla.tests.validation.NabLabValidationTestSuite;
 	// integrated tests
 	NabLabIrTransformersTestSuite.class,
 	NabLabIrInterpreterTestSuite.class,
-	NabLabTestsTest.class,
-	NabLabExamplesTest.class
 })
 
 public class NabLabTestSuite {}

@@ -37,7 +37,7 @@ class GeneralPurposeTest
 
 	static val XTEND_COPYRIGHT_HEADER = List.of(
 			Pattern.compile(Pattern.quote("/*******************************************************************************")), //$NON-NLS-1$
-			Pattern.compile(" \\* Copyright \\(c\\) [0-9]{4}(, [0-9]{4})* (.*)$"), //$NON-NLS-1$
+			Pattern.compile(" \\* Copyright \\(c\\) [0-9]{4}((, [0-9]{4})*|-[0-9]{4}) (.*)$"), //$NON-NLS-1$
 			Pattern.compile(Pattern.quote(" * This program and the accompanying materials are made available under the")), //$NON-NLS-1$
 			Pattern.compile(Pattern.quote(" * terms of the Eclipse Public License 2.0 which is available at")), //$NON-NLS-1$
 			Pattern.compile(Pattern.quote(" * http://www.eclipse.org/legal/epl-2.0.")), //$NON-NLS-1$
@@ -48,7 +48,7 @@ class GeneralPurposeTest
 
 	static val XML_COPYRIGHT_HEADER = List.of(
 			Pattern.compile(Pattern.quote("<!--")), //$NON-NLS-1$
-			Pattern.compile("    Copyright \\(c\\) [0-9]{4}(, [0-9]{4})* (.*)$"), //$NON-NLS-1$
+			Pattern.compile("    Copyright \\(c\\) [0-9]{4}((, [0-9]{4})*|-[0-9]{4}) (.*)$"), //$NON-NLS-1$
 			Pattern.compile(Pattern.quote("    This program and the accompanying materials are made available under the")), //$NON-NLS-1$
 			Pattern.compile(Pattern.quote("    terms of the Eclipse Public License 2.0 which is available at")), //$NON-NLS-1$
 			Pattern.compile(Pattern.quote("    http://www.eclipse.org/legal/epl-2.0.")), //$NON-NLS-1$
